@@ -18,13 +18,15 @@ pub struct RawEthHeader {
 }
 
 impl RawEthHeader {
-    pub fn source(&mut self) -> RawMac {
+    pub fn source(&self) -> RawMac {
         RawMac { inner: self.inner.h_source }
     }
-    pub fn dest(&mut self) -> RawMac {
+    pub fn dest(&self) -> RawMac {
         RawMac { inner: self.inner.h_dest }
     }
-    pub fn proto(&mut self) -> EtherProto {
+    pub fn proto(&self) -> EtherProto {
         self.inner.h_proto as EtherProto
     }
 }
+
+impl NetworkHeader for RawEthHeader {}

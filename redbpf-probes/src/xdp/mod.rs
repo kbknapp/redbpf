@@ -36,6 +36,8 @@ fn block_port_80(ctx: XdpContext) -> XdpResult {
  */
 pub mod prelude;
 
+use bpf_sys::map::MapData;
+
 use crate::bindings::*;
 use crate::maps::{PerfMap as PerfMapBase, PerfMapFlags};
 use crate::net::{NetworkBuffer, NetworkResult};
@@ -83,46 +85,17 @@ impl XdpContext {
     }
 }
 
-impl NetworkBuffer for XdpContext {
-    fn data_start(&self) -> usize {
+impl RawBuf for XdpContext {
+    fn start(&self) -> usize {
         unsafe { (*self.ctx).data as usize }
     }
 
-    fn data_end(&self) -> usize {
+    fn end(&self) -> usize {
         unsafe { (*self.ctx).data_end as usize }
     }
 }
 
-/* NB: this needs to be kept in sync with redbpf::xdp::MapData */
-/// Convenience data type to exchange payload data.
-#[repr(C)]
-pub struct MapData<T> {
-    data: T,
-    offset: u32,
-    size: u32,
-    payload: [u8; 0],
-}
-
-impl<T> MapData<T> {
-    /// Create a new `MapData` value that includes only `data` and no packet
-    /// payload.
-    pub fn new(data: T) -> Self {
-        MapData::<T>::with_payload(data, 0, 0)
-    }
-
-    /// Create a new `MapData` value that includes `data` and `size` payload
-    /// bytes, where the interesting part of the payload starts at `offset`.
-    ///
-    /// The payload can then be retrieved calling `MapData::payload()`.
-    pub fn with_payload(data: T, offset: u32, size: u32) -> Self {
-        Self {
-            data,
-            payload: [],
-            offset,
-            size,
-        }
-    }
-}
+impl MacHeader for XdpContext {}
 
 /// Perf events map.
 ///
