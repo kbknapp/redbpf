@@ -22,36 +22,12 @@ use redbpf_macros::impl_network_buffer_array;
 mod error;
 mod frame;
 
-pub trait MacHeader: RawBuf {
-    fn eth(&self) -> Option<RawEthHeader> {
-        RawEthHeader {
-            inner: self.as_ptr_mut()
-        }
-    }
-}
-
-pub trait NetworkHeader: RawBuf {
-    fn ip(&self) -> Option<RawIpHeader> {
-        RawEthHeader {
-            inner: self.as_ptr_mut()
-        }
-    }
-    fn ipv6(&self) -> Option<RawIpv6Header> {
-        RawEthHeader {
-            inner: self.as_ptr_mut()
-        }
-    }
-}
-
-pub trait TransportHeader: RawBuf {
-    fn tcp(&self) -> Option<RawTcpHeader> {
-        RawEthHeader {
-            inner: self.as_ptr_mut()
-        }
-    }
-    fn udp(&self) -> Option<RawUdpHeader> {
-        RawEthHeader {
-            inner: self.as_ptr_mut()
-        }
-    }
+/// A raw network buffer, meaning a pointer to raw bytes representing a packet
+pub trait RawBuf: crate::RawBuf {
+    /// Returns the layer 2 header from the buffer
+    fn mac_header(&self) -> Option<MacHeader>
+    /// Returns the layer 3 header from the buffer
+    fn network_header(&self) -> Option<NetworkHeader>
+    /// Returns the layer 4 header from the buffer
+    fn transport_header(&self) -> Option<TransportHeader>
 }

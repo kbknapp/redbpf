@@ -28,7 +28,7 @@ It's purpose is essentially served by `redbpf-probes::RawBuf`
 
 No longer required
 
-## `crate::RawBuf` (previously `net::NetworkBuffer`)
+## `crate::RawBuf`/`crate::RawBufMut` (previously `net::NetworkBuffer`)
 
 The motivation behind the change is to allow this buffer to be more abstract for
 other uses and not solely coupled with network or XDP uses. Other networking
