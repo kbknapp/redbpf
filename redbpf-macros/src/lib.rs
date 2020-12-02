@@ -361,13 +361,15 @@ pub fn xdp(attrs: TokenStream, item: TokenStream) -> TokenStream {
     let outer_ident = Ident::new(&format!("outer_{}", ident), Span::call_site());
     let wrapper = parse_quote! {
         fn #outer_ident(ctx: *mut ::redbpf_probes::bindings::xdp_md) -> ::redbpf_probes::xdp::XdpAction {
-            let ctx = ::redbpf_probes::xdp::XdpContext { ctx };
-            return match #ident(ctx) {
-                Ok(action) => action,
-                Err(_) => ::redbpf_probes::xdp::XdpAction::Pass
-            };
+            if let Some(ctx) = ctx.as_mut() {
+                let ctx = ::redbpf_probes::xdp::XdpContext { ctx };
+                return match #ident(ctx) {
+                    Ok(action) => action,
+                    Err(_) => ::redbpf_probes::xdp::XdpAction::Pass
+                };
 
-            #item
+                #item
+            }
         }
     };
     probe_impl("xdp", attrs, wrapper, name)

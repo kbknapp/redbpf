@@ -4,24 +4,6 @@ use crate::bindings::*;
 use crate::helpers::bpf_skb_load_bytes;
 use core::mem::{size_of, MaybeUninit};
 
-pub trait FromBe {
-    fn from_be(&self) -> Self;
-}
-
-macro_rules! impl_from_be {
-    ($T:ty) => {
-        impl FromBe for $T {
-            fn from_be(&self) -> $T {
-                $T::from_be(*self)
-            }
-        }
-    };
-}
-
-impl_from_be!(u8);
-impl_from_be!(u16);
-impl_from_be!(u32);
-
 // Errors in socket-related programs
 pub enum SocketError {
     /// Loading data from the socket buffer failed.

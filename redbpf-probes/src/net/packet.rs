@@ -1,8 +1,3 @@
-/// Represents the Layer 3 information
-pub trait Packet: RawBuf {
-
-}
-
     /// Returns the packet's `IP` header if present.
     #[inline]
     fn ip(&self) -> NetworkResult<*const iphdr> {

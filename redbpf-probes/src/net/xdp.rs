@@ -34,7 +34,23 @@ fn block_port_80(ctx: XdpContext) -> XdpResult {
 }
 ```
  */
-pub mod prelude;
+pub mod prelude {
+    //! The XDP Prelude
+    //!
+    //! The purpose of this module is to alleviate imports of the common XDP types
+    //! by adding a glob import to the top of XDP programs:
+    //!
+    //! ```
+    //! use redbpf_probes::xdp::prelude::*;
+    //! ```
+    pub use cty::*;
+    pub use redbpf_macros::{map, program, xdp};
+    pub use crate::bindings::*;
+    pub use crate::helpers::*;
+    pub use crate::maps::{HashMap, PerfMapFlags};
+    pub use crate::net::*;
+    pub use crate::xdp::*;
+}
 
 use bpf_sys::map::MapData;
 
@@ -73,27 +89,42 @@ pub enum XdpAction {
 /// the context, programs can inspect, modify and redirect the underlying
 /// networking data.
 #[derive(Clone)]
-pub struct XdpContext {
-    pub ctx: *mut xdp_md,
+pub struct XdpContext<'a> {
+    pub ctx: &'a mut xdp_md,
 }
 
-impl XdpContext {
-    /// Returns the raw `xdp_md` context passed by the kernel.
+impl<'a> XdpContext<'a> {
+    /// Returns the `xdp_md` context passed by the kernel.
     #[inline]
-    pub fn inner(&self) -> *mut xdp_md {
+    pub fn inner(&self) -> &mut xdp_md {
         self.ctx
+    }
+
+    /// Returns a [`DataBuf`][0] with the header offset set to `0`, and footer offset
+    /// set to the end of the data buffer (i.e. no footer) since this is a clean
+    /// slate data buffer with no knowledge of what type of data lives inside.
+    ///
+    /// [0]: crate::net::DataBuf
+    pub fn data(&'a self) -> DataBuf<'a, Self> {
+        DataBuf {
+            buf: self.ctx as *const _,
+            start,
+            hdr_offset: 0,
+            ftr_offset: self.ctx.data_end,
+        }
     }
 }
 
-impl RawBuf for XdpContext {
+impl<'a> crate::RawBuf for XdpContext<'a> {
     fn start(&self) -> usize {
-        unsafe { (*self.ctx).data as usize }
+        self.ctx.data as *const _ as usize
     }
 
     fn end(&self) -> usize {
-        unsafe { (*self.ctx).data_end as usize }
+        self.ctx.data_end as usize
     }
 }
+impl<'a> crate::RawBufMut for XdpContext<'a> {}
 
 /// Perf events map.
 ///

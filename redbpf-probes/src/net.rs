@@ -21,22 +21,60 @@ use redbpf_macros::impl_network_buffer_array;
 
 mod error;
 mod frame;
+mod socket;
+mod xdp;
+mod tc;
+mod socket_filter;
 
-/// A raw network buffer, meaning a pointer to raw bytes representing a packet
-pub trait RawBuf: crate::RawBuf {
-    fn header_len();
-    fn body(&self) -> Option<*const u8> {
-        buf.ptr_at(self.header_len())?
-    }
-    fn body_len();
-    fn footer(&self) -> Option<*const u8> {
-        buf.ptr_at(self.body_len())?
-    }
-    fn footer_len();
+pub struct DataBuf<'a, T> where T: RawBuf {
+    /// The underlying memory
+    buf: *const T,
+    /// Offset from `buf.start()` where the next header/body begins
+    nh_offset: usize,
+    /// Offset from `buf.start()` where the footer begins
+    ftr_offset: usize,
+    #[doc(hidden)]
+    _marker: PhantomData<'a>
 }
 
-pub trait Buf {
-    fn parse() -> Option<T> {
-        T::try_from(buf)
+impl<'a, T: RawBuf> Packet for DataBuf<'a, T> {}
+
+impl<'a, T: RawBufMut> PacketMut for DataBuf<'a, T> {}
+
+pub trait FromBe {
+    fn from_be(&self) -> Self;
+}
+
+macro_rules! impl_from_be {
+    ($T:ty) => {
+        impl FromBe for $T {
+            fn from_be(&self) -> $T {
+                $T::from_be(*self)
+            }
+        }
+    };
+}
+
+impl_from_be!(u8);
+impl_from_be!(u16);
+impl_from_be!(u32);
+
+pub trait Packet: RawBuf {
+    fn buf<'a, T>(self) -> DataBuf<'a, T>;
+
+    /// Interprets the bytes in this buffer as some type `T`, "consuming"
+    /// `size_of::<T>()` bytes from the buffer.
+    fn parse<U>(self) -> Result<U> where U: Packet + FromBytes {
+        U::from_bytes(self.buf())
     }
+}
+
+pub trait PacketMut: RawBufMut + Packet {
+    fn parse_mut<U>(self) -> Result<U> where U: PacketMut + FromBytes {
+        U::from_bytes(self.buf())
+    }
+}
+
+unsafe trait FromBytes {
+    fn from_bytes<T>(buf: mut DataBuf<'a, T>) -> Result<Self>;
 }

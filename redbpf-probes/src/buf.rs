@@ -9,36 +9,45 @@
 /// pointers) such as that pointed to by [`XdpContext`]. This trait is meant to
 /// be a low level building block for higher level abstractions.
 ///
+/// The only required methods are `RawBuf::start` and `RawBuf::end` which return
+/// an address to the start and and end of the buffer.
+///
+/// If one does not have an end address, you can re-implement `RawBuf::len` and
+/// simply add it to `RawBuf::start`
+///
 /// [`XdpContext`]: crate::xdp::XdpContext
 pub trait RawBuf
 {
     /// Returns the start address of the buffer
     fn start(&self) -> usize;
+
     /// Returns the end address of the buffer
     fn end(&self) -> usize;
 
-    /// Returns the buffer length.
+    /// Returns the buffer byte length.
     #[inline]
     fn len(&self) -> usize {
-        self.data_end() - self.data_start()
+        self.end() - self.start()
     }
 
-    /// Returns a raw pointer to a given address inside the buffer.
+    /// Returns a raw pointer to the address of `self.start() + offset` ensuring
+    /// the remaining space is enough to point to a `T`
     ///
     /// # Safety
     ///
     /// This method uses [`RawBuf::check_bounds`] to ensure the given address
-    /// `addr` is within the buffer and allows enough following space to point
+    /// `offset` is within the buffer and allows enough following space to point
     /// to something of type `U`. However no checks are done to ensure the
     /// returned pointer points to a valid bit pattern of type `U`, nor are any
-    /// alignments checked. Ensuring proper alignment is followed and pointed to
-    /// address is a valid bit pattern of type `U` is left up to the caller.
+    /// alignments checked. Ensuring proper alignment is followed and that the
+    /// pointed to address is a valid bit pattern of type `U` is left up to the
+    /// caller.
     ///
     /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
     #[inline]
-    unsafe fn ptr_at<U>(&self, addr: usize) -> Option<*const U> {
-        if self.check_bounds(addr, addr + mem::size_of::<U>()) {
-            return Some(addr as *const U)
+    unsafe fn ptr_at<U>(&self, offset: usize) -> Option<*const U> {
+        if self.check_bound(offset + mem::size_of::<U>()) {
+            return Some(offset as *const U);
         }
         None
     }
@@ -47,17 +56,21 @@ pub trait RawBuf
     ///
     /// # Safety
     ///
-    /// This method uses [`RawBuf::check_bounds`] to ensure the given address
-    /// `addr` is within the buffer and allows enough following space to point
-    /// to something of type `U`. However no checks are done to ensure the
+    /// This method uses [`RawBuf::check_bounds`] to ensure the given pointer
+    /// address `prev` is within the buffer and allows enough following space to
+    /// point to something of type `U`. However no checks are done to ensure the
     /// returned pointer points to a valid bit pattern of type `U`, nor are any
-    /// alignments checked. Ensuring proper alignment is followed and pointed to
-    /// address is a valid bit pattern of type `U` is left up to the caller.
+    /// alignments checked. Ensuring proper alignment is followed and that the
+    /// pointed to address is a valid bit pattern of type `U` is left up to the
+    /// caller.
     ///
     /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
     #[inline]
     unsafe fn ptr_after<T, U>(&self, prev: *const T) -> Option<*const U> {
-        self.ptr_at(prev as usize + mem::size_of::<T>())
+        if self.check_bounds(prev as usize, prev as usize + mem::size_of::<T>()) {
+            return Some(self.ptr_at((prev as usize - self.start()) + mem::size_of::<T>()));
+        }
+        None
     }
 
     /// Ensures that addresses `start` and `end` are within this buffer.
@@ -70,30 +83,6 @@ pub trait RawBuf
     #[inline]
     fn check_bound(&self, addr: usize) -> bool {
         !(addr > self.end() || addr < self.start())
-    }
-
-    /// Returns this buffer as a raw pointer
-    #[inline]
-    fn as_ptr(&self, addr: usize) -> *const u8 {
-        self.start() as *const u8
-    }
-
-    /// Returns a raw pointer to the address of `self.start() + offset` ensuring
-    /// the remaining space is enough to point to a `T`
-    ///
-    /// # Safety
-    ///
-    /// This method uses [`RawBuf::check_bounds`] to ensure the given address
-    /// `addr` is within the buffer and allows enough following space to point
-    /// to something of type `U`. However no checks are done to ensure the
-    /// returned pointer points to a valid bit pattern of type `U`, nor are any
-    /// alignments checked. Ensuring proper alignment is followed and pointed to
-    /// address is a valid bit pattern of type `U` is left up to the caller.
-    ///
-    /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
-    #[inline]
-    unsafe fn offset<T>(&self, offset: usize) -> Option<*const T> {
-        self.ptr_at(self.start() + offset)
     }
 
     /// Returns a `slice` of `len` bytes starting at `offset` from the buffer
@@ -121,49 +110,6 @@ pub trait RawBuf
 /// [`XdpContext`]: crate::xdp::XdpContext
 pub trait RawBufMut: RawBuf
 {
-    /// Returns a raw mutable pointer to a given address inside the buffer.
-    ///
-    /// # Safety
-    ///
-    /// This method uses [`RawBuf::check_bounds`] to ensure the given address
-    /// `addr` is within the buffer and allows enough following space to point
-    /// to something of type `U`. However no checks are done to ensure the
-    /// returned pointer points to a valid bit pattern of type `U`, nor are any
-    /// alignments checked. Ensuring proper alignment is followed and pointed to
-    /// address is a valid bit pattern of type `U` is left up to the caller.
-    ///
-    /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
-    #[inline]
-    unsafe fn ptr_at_mut<U>(&self, addr: usize) -> Option<*mut U> {
-        if self.check_bounds(addr, addr + mem::size_of::<U>())? {
-            return Some(addr as *mut U);
-        }
-        None
-    }
-
-    /// Returns a raw mutable pointer to the address following `prev` plus the size of a `T`
-    ///
-    /// # Safety
-    ///
-    /// This method uses [`RawBuf::check_bounds`] to ensure the given address
-    /// `addr` is within the buffer and allows enough following space to point
-    /// to something of type `U`. However no checks are done to ensure the
-    /// returned pointer points to a valid bit pattern of type `U`, nor are any
-    /// alignments checked. Ensuring proper alignment is followed and pointed to
-    /// address is a valid bit pattern of type `U` is left up to the caller.
-    ///
-    /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
-    #[inline]
-    unsafe fn ptr_after_mut<T, U>(&self, prev: *const T) -> Option<*mut U> {
-        self.ptr_at(prev as usize + mem::size_of::<T>())
-    }
-
-    /// Returns this buffer as a raw pointer
-    #[inline]
-    fn as_mut(&self, addr: usize) -> *mut u8 {
-        self.start() as *mut u8
-    }
-
     /// Returns a raw mutable pointer to the address of `self.start() + offset`
     /// ensuring the remaining space is enough to point to a `T`
     ///
@@ -178,8 +124,26 @@ pub trait RawBufMut: RawBuf
     ///
     /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
     #[inline]
-    unsafe fn offset_mut<T>(&self, offset: usize) -> Option<*mut T> {
+    unsafe fn ptr_at_mut<T>(&self, offset: usize) -> Option<*mut T> {
         self.ptr_at_mut(self.start() + offset)
+    }
+
+    /// Returns a raw mutable pointer to the address following `prev` plus the size of a `T`
+    ///
+    /// # Safety
+    ///
+    /// This method uses [`RawBuf::check_bounds`] to ensure the given pointer
+    /// address `prev` is within the buffer and allows enough following space to
+    /// point to something of type `U`. However no checks are done to ensure the
+    /// returned pointer points to a valid bit pattern of type `U`, nor are any
+    /// alignments checked. Ensuring proper alignment is followed and that the
+    /// pointed to address is a valid bit pattern of type `U` is left up to the
+    /// caller.
+    ///
+    /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
+    #[inline]
+    unsafe fn ptr_after_mut<T, U>(&self, prev: *const T) -> Option<*mut U> {
+        self.ptr_at(prev as usize + mem::size_of::<T>())
     }
 
     /// Returns a mutable `slice` of `len` bytes starting at `offset` from the
