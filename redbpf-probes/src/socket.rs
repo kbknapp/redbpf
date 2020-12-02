@@ -9,7 +9,7 @@ pub trait FromBe {
 }
 
 macro_rules! impl_from_be {
-    ($T:ident) => {
+    ($T:ty) => {
         impl FromBe for $T {
             fn from_be(&self) -> $T {
                 $T::from_be(*self)
