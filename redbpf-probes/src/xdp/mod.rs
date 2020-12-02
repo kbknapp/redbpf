@@ -95,8 +95,6 @@ impl RawBuf for XdpContext {
     }
 }
 
-impl MacHeader for XdpContext {}
-
 /// Perf events map.
 ///
 /// Similar to `PerfMap`, with additional XDP-only API.

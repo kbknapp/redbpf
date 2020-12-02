@@ -5,28 +5,32 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-#[repr(u32)]
-pub enum EtherProto {
-    Ipv4 = ETH_P_IP,
-}
-pub struct RawMac {
-    inner: *mut [u8; 6]
+#[repr(u16)]
+pub enum EthProto {
+    Ipv4 = ETH_P_IP as u16,
 }
 
-pub struct RawEthHeader {
-    inner: *mut ethhdr
+pub struct Ethernet {
+    hdr: *mut ethhdr,
 }
 
-impl RawEthHeader {
-    pub fn source(&self) -> RawMac {
-        RawMac { inner: self.inner.h_source }
+impl Ethernet {
+    pub fn source(&self) -> &[u8; 6] {
+        &self.inner.h_source
     }
     pub fn dest(&self) -> RawMac {
-        RawMac { inner: self.inner.h_dest }
+        &self.inner.h_dest
     }
-    pub fn proto(&self) -> EtherProto {
-        self.inner.h_proto as EtherProto
+    pub fn proto(&self) -> EthProto {
+        u16::from_be(self.inner.h_proto) as EthProto
     }
 }
 
-impl NetworkHeader for RawEthHeader {}
+impl TryFrom<T> for Ethernet where T: crate::net::Buf {
+    fn try_from(b: T) -> Option<Self> {
+        Ethernet {
+            hdr: b.ptr_at(b.as_ptr() as usize)?
+        }
+    }
+
+}

@@ -24,10 +24,19 @@ mod frame;
 
 /// A raw network buffer, meaning a pointer to raw bytes representing a packet
 pub trait RawBuf: crate::RawBuf {
-    /// Returns the layer 2 header from the buffer
-    fn mac_header(&self) -> Option<MacHeader>
-    /// Returns the layer 3 header from the buffer
-    fn network_header(&self) -> Option<NetworkHeader>
-    /// Returns the layer 4 header from the buffer
-    fn transport_header(&self) -> Option<TransportHeader>
+    fn header_len();
+    fn body(&self) -> Option<*const u8> {
+        buf.ptr_at(self.header_len())?
+    }
+    fn body_len();
+    fn footer(&self) -> Option<*const u8> {
+        buf.ptr_at(self.body_len())?
+    }
+    fn footer_len();
+}
+
+pub trait Buf {
+    fn parse() -> Option<T> {
+        T::try_from(buf)
+    }
 }

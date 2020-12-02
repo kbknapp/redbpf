@@ -98,7 +98,7 @@ pub trait RawBuf
 
     /// Returns a `slice` of `len` bytes starting at `offset` from the buffer
     #[inline]
-    pub fn slice(&self, offset: usize, len: usize) -> Option<&[u8]> {
+    pub fn slice_at(&self, offset: usize, len: usize) -> Option<&[u8]> {
         unsafe {
             let start = self.start() + offset;
             self.check_bounds(start, start + len)?;
@@ -185,7 +185,7 @@ pub trait RawBufMut: RawBuf
     /// Returns a mutable `slice` of `len` bytes starting at `offset` from the
     /// buffer
     #[inline]
-    pub fn slice_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
+    pub fn slice_at_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
         unsafe {
             let start = self.start() + offset;
             self.check_bounds(start, start + len)?;
