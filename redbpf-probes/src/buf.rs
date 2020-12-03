@@ -16,8 +16,7 @@
 /// simply add it to `RawBuf::start`
 ///
 /// [`XdpContext`]: crate::xdp::XdpContext
-pub trait RawBuf
-{
+pub trait RawBuf {
     /// Returns the start address of the buffer
     fn start(&self) -> usize;
 

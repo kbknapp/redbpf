@@ -105,11 +105,10 @@ impl<'a> XdpContext<'a> {
     /// slate data buffer with no knowledge of what type of data lives inside.
     ///
     /// [0]: crate::net::DataBuf
-    pub fn data(&'a self) -> DataBuf<'a, Self> {
+    pub fn data(&mut self) -> DataBuf<'a, Self> {
         DataBuf {
-            buf: self.ctx as *const _,
-            start,
-            hdr_offset: 0,
+            buf: self,
+            nh_offset: 0,
             ftr_offset: self.ctx.data_end,
         }
     }
@@ -124,6 +123,7 @@ impl<'a> crate::RawBuf for XdpContext<'a> {
         self.ctx.data_end as usize
     }
 }
+
 impl<'a> crate::RawBufMut for XdpContext<'a> {}
 
 /// Perf events map.

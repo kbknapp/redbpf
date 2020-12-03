@@ -45,12 +45,16 @@ impl<'a, T> Ethernet<'a, T> where T: RawBufMut {
     }
 }
 
-impl<'a, T: RawBuf> Packet for Ethernet<'a, T> {}
+impl<'a, T: RawBuf> Packet for Ethernet<'a, T> {
+    fn buf(self) -> DataBuf<'a, T> {
+        self.buf
+    }
+}
 impl<'a, T: RawBufMut> PacketMut for Ethernet<'a, T> {}
 
 unsafe impl<'a, T> FromBytes for Ethernet<'a, T> {
     fn from_bytes(buf: mut DataBuf<'a, T>) -> Result<Self> {
-        if let Some(eth) = buf.buf.ptr_at::<ethhdr>(buf.hdr_offset)?.as_mut() {
+        if let Some(eth) = buf.ptr_at::<ethhdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<ethhdr>();
             Ethernet {
                 buf: buf,
