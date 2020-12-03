@@ -14,7 +14,6 @@ extern crate zero;
 pub mod headers;
 pub mod perf_reader;
 pub mod uname;
-pub mod map;
 
 include!(concat!(env!("OUT_DIR"), "/libbpf_bindings.rs"));
 include!(concat!(env!("OUT_DIR"), "/libbpf_map_def.rs"));

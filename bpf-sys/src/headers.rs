@@ -55,11 +55,10 @@ pub fn prefix_kernel_headers(headers: &[&str]) -> Option<Vec<String>> {
 
 pub fn running_kernel_version() -> Option<String> {
     env::var("KERNEL_VERSION").ok().or_else(|| {
-	uname::uname().map(|u| {
+        uname::uname().ok().map(|u| {
             uname::to_str(&u.release).to_string()
-	})
-    })
-}
+        })
+    })}
 
 pub fn build_kernel_version() -> Result<KernelVersion, Box<dyn Error>> {
     let KernelHeaders { source: _, build } = kernel_headers_path()?;
