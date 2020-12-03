@@ -5,13 +5,15 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::result::Result as StdResult;
+use core::result::Result as StdResult;
 
 pub enum Error {
     Other,
     OutOfBounds,
     NoIPHeader,
     UnsupportedTransport(u32),
+    TypeFromBytes,
+    UnknownProtocol,
 }
 
 pub type Result<T> = StdResult<T, Error>;

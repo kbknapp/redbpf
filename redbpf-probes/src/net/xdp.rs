@@ -24,7 +24,7 @@ use redbpf_probes::xdp::prelude::*;
 program!(0xFFFFFFFE, "GPL");
 
 #[xdp]
-fn block_port_80(ctx: XdpContext) -> XdpResult {
+fn block_port_80(ctx: XdpContext) -> Result<XdpAction> {
     let transport = ctx.transport()?;
     if transport.dest() == 80 {
         return Ok(XdpAction::Drop);
@@ -34,6 +34,7 @@ fn block_port_80(ctx: XdpContext) -> XdpResult {
 }
 ```
  */
+
 pub mod prelude {
     //! The XDP Prelude
     //!
@@ -41,25 +42,25 @@ pub mod prelude {
     //! by adding a glob import to the top of XDP programs:
     //!
     //! ```
-    //! use redbpf_probes::xdp::prelude::*;
+    //! use redbpf_probes::net::xdp::prelude::*;
     //! ```
-    pub use cty::*;
-    pub use redbpf_macros::{map, program, xdp};
     pub use crate::bindings::*;
     pub use crate::helpers::*;
     pub use crate::maps::{HashMap, PerfMapFlags};
     pub use crate::net::*;
-    pub use crate::xdp::*;
+    pub use crate::net::xdp::*;
+    pub use cty::*;
+    pub use redbpf_macros::{map, program, xdp};
 }
 
-use bpf_sys::map::MapData;
+use redbpf_maps::MapData;
 
-use crate::bindings::*;
-use crate::maps::{PerfMap as PerfMapBase, PerfMapFlags};
-use crate::net::{NetworkBuffer, NetworkResult};
-
-/// The result type for XDP programs.
-pub type XdpResult = NetworkResult<XdpAction>;
+use crate::{
+    bindings::*,
+    maps::{PerfMap as PerfMapBase, PerfMapFlags},
+    buf::{RawBufMut, RawBuf},
+    net::DataBuf,
+};
 
 /// The return type for successful XDP probes.
 #[repr(u32)]
@@ -114,7 +115,7 @@ impl<'a> XdpContext<'a> {
     }
 }
 
-impl<'a> crate::RawBuf for XdpContext<'a> {
+impl<'a> RawBuf for XdpContext<'a> {
     fn start(&self) -> usize {
         self.ctx.data as *const _ as usize
     }
@@ -124,7 +125,7 @@ impl<'a> crate::RawBuf for XdpContext<'a> {
     }
 }
 
-impl<'a> crate::RawBufMut for XdpContext<'a> {}
+impl<'a> RawBufMut for XdpContext<'a> {}
 
 /// Perf events map.
 ///

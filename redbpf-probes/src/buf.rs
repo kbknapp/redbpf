@@ -5,6 +5,8 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use core::{mem, slice};
+
 /// Represents a raw Buffer ("raw" meaning it works with, and gives out raw
 /// pointers) such as that pointed to by [`XdpContext`]. This trait is meant to
 /// be a low level building block for higher level abstractions.
@@ -86,7 +88,7 @@ pub trait RawBuf {
 
     /// Returns a `slice` of `len` bytes starting at `offset` from the buffer
     #[inline]
-    pub fn slice_at(&self, offset: usize, len: usize) -> Option<&[u8]> {
+    fn slice_at(&self, offset: usize, len: usize) -> Option<&[u8]> {
         unsafe {
             let start = self.start() + offset;
             self.check_bounds(start, start + len)?;
@@ -97,7 +99,7 @@ pub trait RawBuf {
 
     /// Returns the buffer as a `slice` of bytes
     #[inline]
-    pub fn as_slice(&self) -> &[u8] {
+    fn as_slice(&self) -> &[u8] {
         self.slice(0, self.len()).unwrap()
     }
 }
@@ -107,8 +109,7 @@ pub trait RawBuf {
 /// is meant to be a low level building block for higher level abstractions.
 ///
 /// [`XdpContext`]: crate::xdp::XdpContext
-pub trait RawBufMut: RawBuf
-{
+pub trait RawBufMut: RawBuf {
     /// Returns a raw mutable pointer to the address of `self.start() + offset`
     /// ensuring the remaining space is enough to point to a `T`
     ///
@@ -148,7 +149,7 @@ pub trait RawBufMut: RawBuf
     /// Returns a mutable `slice` of `len` bytes starting at `offset` from the
     /// buffer
     #[inline]
-    pub fn slice_at_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
+    fn slice_at_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
         unsafe {
             let start = self.start() + offset;
             self.check_bounds(start, start + len)?;
@@ -159,7 +160,7 @@ pub trait RawBufMut: RawBuf
 
     /// Returns the buffer as a mutable `slice` of bytes
     #[inline]
-    pub fn as_slice_mut(&self) -> &mut [u8] {
+    fn as_slice_mut(&self) -> &mut [u8] {
         self.slice_mut(0, self.len()).unwrap()
     }
 }

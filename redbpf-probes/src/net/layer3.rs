@@ -7,6 +7,7 @@
 
 mod ipv4;
 
+pub use ipv4::Ipv4;
 
 #[non_exhaustive]
 pub enum L3Proto {

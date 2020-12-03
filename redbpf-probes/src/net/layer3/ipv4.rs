@@ -5,9 +5,17 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use core::mem;
+
+use crate::{
+    bindings::iphdr,
+    buf::{RawBuf, RawBufMut},
+    net::{error::Error, DataBuf, FromBytes, Packet},
+};
+
 pub struct Ipv4<'a, T> {
     buf: DataBuf<'a, T>,
-    hdr: &mut iphdr,
+    hdr: &'a mut iphdr,
 }
 
 impl<'a, T> Ipv4<'a, T> {
@@ -94,7 +102,10 @@ impl<'a, T> Ipv4<'a, T> {
 }
 
 // @TODO set_* methods
-impl<'a, T> Ipv4<'a, T> where T: RawBufMut {
+impl<'a, T> Ipv4<'a, T>
+where
+    T: RawBufMut,
+{
     /// Returns the version of the header
     pub fn version_mut(&mut self) -> &mut u8 {
         unimplemented!()
@@ -182,16 +193,12 @@ impl<'a, T: RawBuf> Packet for Ipv4<'a, T> {
         self.buf
     }
 }
-impl<'a, T: RawBufMut> PacketMut for Ipv4<'a, T> {}
 
 unsafe impl<'a, T> FromBytes for Ipv4<'a, T> {
-    fn from_bytes(buf: mut DataBuf<'a, T>) -> Result<Self> {
+    fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
         if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<iphdr>();
-            Ipv4 {
-                buf: buf,
-                hdr: ip,
-            }
+            Ipv4 { buf, hdr: ip }
         }
 
         Err(Error::TypeFromBytes)

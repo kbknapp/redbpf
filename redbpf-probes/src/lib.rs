@@ -51,13 +51,10 @@ pub fn block_port_80(ctx: XdpContext) -> XdpResult {
 #![deny(clippy::all)]
 #![no_std]
 pub mod bindings;
+pub mod buf;
 pub mod helpers;
 pub mod kprobe;
 pub mod maps;
 pub mod net;
 pub mod registers;
-pub mod socket;
-pub mod socket_filter;
-pub mod tc;
 pub mod uprobe;
-pub mod xdp;

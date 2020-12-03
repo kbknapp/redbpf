@@ -5,9 +5,21 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use core::mem;
+
+use crate::{
+    bindings::{ethhdr, ETH_P_IP},
+    buf::{RawBuf, RawBufMut},
+    net::{
+        error::Error,
+        layer3::{Ipv4, L3Proto},
+        DataBuf, FromBytes, Packet,
+    },
+};
+
 pub struct Ethernet<'a, T> {
     buf: DataBuf<'a, T>,
-    hdr: &mut ethhdr,
+    hdr: &'a mut ethhdr,
 }
 
 impl<'a, T> Ethernet<'a, T> {
@@ -28,7 +40,10 @@ impl<'a, T> Ethernet<'a, T> {
     }
 }
 
-impl<'a, T> Ethernet<'a, T> where T: RawBufMut {
+impl<'a, T> Ethernet<'a, T>
+where
+    T: RawBufMut,
+{
     /// Sets the source MAC address.
     pub fn set_source(&mut self, val: &[u8; 6]) {
         todo!("impl Ethernet::set_source")
@@ -58,19 +73,16 @@ impl<'a, T: RawBuf> Packet for Ethernet<'a, T> {
     fn parse_from(self) -> Result<Self::Encapsulated> {
         match self.proto() {
             ETH_P_IP => Ok(L3Proto::Ipv4(self.parse::<Ipv4>()?)),
-            _ => Err(Error::UnknownProtocol)
+            _ => Err(Error::UnknownProtocol),
         }
     }
 }
 
 unsafe impl<'a, T> FromBytes for Ethernet<'a, T> {
-    fn from_bytes(buf: mut DataBuf<'a, T>) -> Result<Self> {
+    fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
         if let Some(eth) = buf.ptr_at::<ethhdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<ethhdr>();
-            Ethernet {
-                buf: buf,
-                hdr: eth,
-            }
+            Ethernet { buf, hdr: eth }
         }
 
         Err(Error::TypeFromBytes)
