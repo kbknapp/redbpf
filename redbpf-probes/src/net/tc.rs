@@ -1,4 +1,4 @@
-use crate::socket::SocketError;
+use crate::net::socket::SocketError;
 
 /// Possible actions in tc programs
 pub enum TcAction {

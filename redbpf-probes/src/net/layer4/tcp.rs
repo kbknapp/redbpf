@@ -35,15 +35,15 @@ use core::mem;
 use crate::{
     bindings::tcphdr,
     buf::{RawBuf, RawBufMut},
-    net::{error::Error, DataBuf, FromBytes, Packet},
+    net::{error::{Error, Result}, DataBuf, FromBytes, Packet},
 };
 
-pub struct Tcp<'a, T> {
+pub struct Tcp<'a, T> where T: RawBuf{
     buf: DataBuf<'a, T>,
     hdr: &'a mut tcphdr,
 }
 
-impl<'a, T> Tcp<'a, T> {
+impl<'a, T> Tcp<'a, T> where T: RawBuf {
     /// Returns the source port (LE)
     pub fn source(&self) -> u16 {
         unimplemented!()
@@ -67,52 +67,52 @@ impl<'a, T> Tcp<'a, T> {
     /// Returns the data offset in bytes
     #[inline]
     pub fn doff(&self) -> u8 {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(4usize, 4u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(4usize, 4u8) as u16) }
     }
 
     #[inline]
     pub fn res1(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(0usize, 4u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(0usize, 4u8) as u16) }
     }
 
     #[inline]
     pub fn fin(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(8usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn syn(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(9usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(9usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn rst(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(10usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(10usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn psh(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(11usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(11usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn ack(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(12usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(12usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn urg(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(13usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(13usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn ece(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(14usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(14usize, 1u8) as u16) }
     }
 
     #[inline]
     pub fn cwr(&self) -> bool {
-        unsafe { ::core::mem::transmute(self._bitfield_1.get(15usize, 1u8) as u16) }
+        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(15usize, 1u8) as u16) }
     }
 }
 
@@ -125,7 +125,7 @@ where
     pub fn set_doff(&mut self, val: u8) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(4usize, 4u8, val as u64)
+            self.hdr._bitfield_1.set(4usize, 4u8, val as u64)
         }
     }
 
@@ -133,7 +133,7 @@ where
     pub fn set_res1(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(0usize, 4u8, val as u64)
+            self.hdr._bitfield_1.set(0usize, 4u8, val as u64)
         }
     }
 
@@ -141,7 +141,7 @@ where
     pub fn set_fin(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(8usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(8usize, 1u8, val as u64)
         }
     }
 
@@ -149,7 +149,7 @@ where
     pub fn set_syn(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(9usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(9usize, 1u8, val as u64)
         }
     }
 
@@ -157,7 +157,7 @@ where
     pub fn set_rst(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(10usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(10usize, 1u8, val as u64)
         }
     }
 
@@ -165,7 +165,7 @@ where
     pub fn set_psh(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(11usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(11usize, 1u8, val as u64)
         }
     }
 
@@ -173,7 +173,7 @@ where
     pub fn set_ack(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(12usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(12usize, 1u8, val as u64)
         }
     }
 
@@ -181,7 +181,7 @@ where
     pub fn set_urg(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(13usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(13usize, 1u8, val as u64)
         }
     }
 
@@ -189,7 +189,7 @@ where
     pub fn set_ece(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(14usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(14usize, 1u8, val as u64)
         }
     }
 
@@ -197,7 +197,7 @@ where
     pub fn set_cwr(&mut self, val: bool) {
         unsafe {
             let val: u16 = ::core::mem::transmute(val);
-            self._bitfield_1.set(15usize, 1u8, val as u64)
+            self.hdr._bitfield_1.set(15usize, 1u8, val as u64)
         }
     }
 
@@ -274,7 +274,7 @@ impl<'a, T: RawBuf> Packet for Tcp<'a, T> {
     }
 }
 
-unsafe impl<'a, T> FromBytes for Tcp<'a, T> {
+unsafe impl<'a, T> FromBytes for Tcp<'a, T> where T: RawBuf {
     fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
         if let Some(ip) = buf.ptr_at::<tcphdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<tcphdr>();

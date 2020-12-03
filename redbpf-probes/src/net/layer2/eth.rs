@@ -11,18 +11,18 @@ use crate::{
     bindings::{ethhdr, ETH_P_IP},
     buf::{RawBuf, RawBufMut},
     net::{
-        error::Error,
+        error::{Error, Result},
         layer3::{Ipv4, L3Proto},
         DataBuf, FromBytes, Packet,
     },
 };
 
-pub struct Ethernet<'a, T> {
+pub struct Ethernet<'a, T> where T: RawBuf{
     buf: DataBuf<'a, T>,
     hdr: &'a mut ethhdr,
 }
 
-impl<'a, T> Ethernet<'a, T> {
+impl<'a, T> Ethernet<'a, T> where T: RawBuf {
     /// Returns the Source MAC address
     pub fn source(&self) -> &[u8; 6] {
         &self.inner.h_source
@@ -78,7 +78,7 @@ impl<'a, T: RawBuf> Packet for Ethernet<'a, T> {
     }
 }
 
-unsafe impl<'a, T> FromBytes for Ethernet<'a, T> {
+unsafe impl<'a, T> FromBytes for Ethernet<'a, T> where T: RawBuf {
     fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
         if let Some(eth) = buf.ptr_at::<ethhdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<ethhdr>();

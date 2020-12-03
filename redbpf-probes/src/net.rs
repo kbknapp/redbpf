@@ -23,7 +23,10 @@ mod socket_filter;
 mod tc;
 mod xdp;
 
-use crate::buf::RawBuf;
+use crate::{
+    buf::RawBuf,
+        net::error::{Result},
+};
 
 pub struct DataBuf<'a, T>
 where
@@ -37,7 +40,7 @@ where
     ftr_offset: usize,
 }
 
-impl<'a, T: RawBuf> Packet for DataBuf<'a, T> {
+impl<'a, T: RawBuf> Packet for DataBuf<'a, T> where T: RawBuf{
     fn buf(self) -> DataBuf<'a, T> {
         self
     }
@@ -128,17 +131,18 @@ impl_from_be!(u32);
 /// * Must have an alignment of 1 (or use `#[repr(C, packed)]`, which uses an
 ///   alignment of 1)
 /// * Must also implement `Packet`
-pub trait Packet: RawBuf {
+pub trait Packet: RawBuf + Sized {
     type Encapsulated;
-    fn buf<'a, T>(self) -> DataBuf<'a, T>;
+    fn buf<'a, T>(self) -> DataBuf<'a, T> where T: RawBuf;
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
-    fn parse<U>(self) -> Result<U>
+    fn parse<T, U>(self) -> Result<U>
     where
         U: Packet + FromBytes,
+        T: RawBuf,
     {
-        U::from_bytes(self.buf())
+        U::from_bytes::<T>(self.buf())
     }
 
     /// Uses some condition to determine the type that the bytes will be parsed
@@ -162,6 +166,6 @@ pub trait Packet: RawBuf {
     fn parse_from(self) -> Result<Self::Encapsulated>;
 }
 
-unsafe trait FromBytes {
-    fn from_bytes<'a, T>(buf: DataBuf<'a, T>) -> Result<Self>;
+unsafe trait FromBytes : Sized {
+    fn from_bytes<'a, T>(buf: DataBuf<'a, T>) -> Result<Self> where T: RawBuf ;
 }
