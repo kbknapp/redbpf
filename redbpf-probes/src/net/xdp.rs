@@ -47,18 +47,16 @@ pub mod prelude {
     pub use crate::bindings::*;
     pub use crate::helpers::*;
     pub use crate::maps::{HashMap, PerfMapFlags};
-    pub use crate::net::*;
     pub use crate::net::xdp::*;
+    pub use crate::net::*;
     pub use cty::*;
     pub use redbpf_macros::{map, program, xdp};
 }
 
-use redbpf_maps::MapData;
-
 use crate::{
     bindings::*,
+    buf::{RawBuf, RawBufMut},
     maps::{PerfMap as PerfMapBase, PerfMapFlags},
-    buf::{RawBufMut, RawBuf},
     net::DataBuf,
 };
 
@@ -89,7 +87,6 @@ pub enum XdpAction {
 /// XDP programs are passed a `XdpContext` instance as their argument. Through
 /// the context, programs can inspect, modify and redirect the underlying
 /// networking data.
-#[derive(Clone)]
 pub struct XdpContext<'a> {
     pub ctx: &'a mut xdp_md,
 }
@@ -110,14 +107,14 @@ impl<'a> XdpContext<'a> {
         DataBuf {
             buf: self,
             nh_offset: 0,
-            ftr_offset: self.ctx.data_end,
+            ftr_offset: self.ctx.data_end as usize,
         }
     }
 }
 
 impl<'a> RawBuf for XdpContext<'a> {
     fn start(&self) -> usize {
-        self.ctx.data as *const _ as usize
+        self.ctx.data as usize
     }
 
     fn end(&self) -> usize {
@@ -126,6 +123,37 @@ impl<'a> RawBuf for XdpContext<'a> {
 }
 
 impl<'a> RawBufMut for XdpContext<'a> {}
+
+/* NB: this needs to be kept in sync with redbpf::xdp::MapData */
+/// Convenience data type to exchange payload data.
+#[repr(C)]
+pub struct MapData<T> {
+    data: T,
+    offset: u32,
+    size: u32,
+    payload: [u8; 0],
+}
+
+impl<T> MapData<T> {
+    /// Create a new `MapData` value that includes only `data` and no packet
+    /// payload.
+    pub fn new(data: T) -> Self {
+        MapData::<T>::with_payload(data, 0, 0)
+    }
+
+    /// Create a new `MapData` value that includes `data` and `size` payload
+    /// bytes, where the interesting part of the payload starts at `offset`.
+    ///
+    /// The payload can then be retrieved calling `MapData::payload()`.
+    pub fn with_payload(data: T, offset: u32, size: u32) -> Self {
+        Self {
+            data,
+            payload: [],
+            offset,
+            size,
+        }
+    }
+}
 
 /// Perf events map.
 ///

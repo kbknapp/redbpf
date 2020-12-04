@@ -7,3 +7,12 @@
 
 //! Layer 2 frame handling
 mod eth;
+
+pub use eth::Ethernet;
+
+use crate::buf::RawBuf;
+
+#[non_exhaustive]
+pub enum L2Proto<'a, T: RawBuf> {
+    Ethernet(Ethernet<'a, T>),
+}

@@ -13,12 +13,12 @@ use crate::{
     net::{error::{Error, Result}, DataBuf, FromBytes, Packet},
 };
 
-pub struct Ipv4<'a, T> {
+pub struct Ipv4<'a, T: RawBuf> {
     buf: DataBuf<'a, T>,
     hdr: &'a mut iphdr,
 }
 
-impl<'a, T> Ipv4<'a, T> {
+impl<'a, T: RawBuf> Ipv4<'a, T> {
     /// Returns the version of the header
     pub fn version(&self) -> u8 {
         4

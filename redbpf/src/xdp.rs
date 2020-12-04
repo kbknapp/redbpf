@@ -22,3 +22,34 @@ impl Default for Flags {
         Flags::Unset
     }
 }
+
+/* NB: this needs to be kept in sync with redbpf_probes::net::xdp::MapData */
+/// Convenience data type to exchange payload data.
+#[repr(C)]
+pub struct MapData<T> {
+    data: T,
+    offset: u32,
+    size: u32,
+    payload: [u8; 0],
+}
+
+impl<T> MapData<T> {
+    /// Create a new `MapData` value that includes only `data` and no packet
+    /// payload.
+    pub fn new(data: T) -> Self {
+        MapData::<T>::with_payload(data, 0, 0)
+    }
+
+    /// Create a new `MapData` value that includes `data` and `size` payload
+    /// bytes, where the interesting part of the payload starts at `offset`.
+    ///
+    /// The payload can then be retrieved calling `MapData::payload()`.
+    pub fn with_payload(data: T, offset: u32, size: u32) -> Self {
+        Self {
+            data,
+            payload: [],
+            offset,
+            size,
+        }
+    }
+}

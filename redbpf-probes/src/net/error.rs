@@ -14,6 +14,13 @@ pub enum Error {
     UnsupportedTransport(u32),
     TypeFromBytes,
     UnknownProtocol,
+    NoneValueReturned
 }
 
 pub type Result<T> = StdResult<T, Error>;
+
+impl From<NoneError> for Error {
+    fn from(n: NoneError) -> Self {
+        Err(Error::NoneValueReturned)
+    }
+}

@@ -10,7 +10,6 @@ keywords = ["bpf", "ebpf", "redbpf"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-redbpf-maps = { path = "../redbpf-maps" }
 cty = "0.2"
 redbpf-macros = { version = "^1.0.1", path = "../redbpf-macros" }
 ufmt = { version = "0.1.0", default-features = false }

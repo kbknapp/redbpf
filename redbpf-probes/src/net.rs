@@ -40,9 +40,23 @@ where
     ftr_offset: usize,
 }
 
-impl<'a, T: RawBuf> Packet for DataBuf<'a, T> where T: RawBuf{
+impl<'a, T: RawBuf> RawBuf for DataBuf<'a, T> {
+    fn start(&self) -> usize {
+        self.buf.start()
+    }
+    fn end(&self) -> usize {
+        self.buf.end()
+    }
+}
+
+impl<'a, T: RawBuf> Packet for DataBuf<'a, T> {
+    type Encapsulated = L2Proto;
     fn buf(self) -> DataBuf<'a, T> {
         self
+    }
+
+    fn parse_from(self) -> Result<Self::Encapsulated> {
+        todo!("impl Packet::parse_from for DataBuf")
     }
 }
 
@@ -131,7 +145,7 @@ impl_from_be!(u32);
 /// * Must have an alignment of 1 (or use `#[repr(C, packed)]`, which uses an
 ///   alignment of 1)
 /// * Must also implement `Packet`
-pub trait Packet: RawBuf + Sized {
+pub trait Packet : Sized {
     type Encapsulated;
     fn buf<'a, T>(self) -> DataBuf<'a, T> where T: RawBuf;
 
@@ -167,5 +181,5 @@ pub trait Packet: RawBuf + Sized {
 }
 
 unsafe trait FromBytes : Sized {
-    fn from_bytes<'a, T>(buf: DataBuf<'a, T>) -> Result<Self> where T: RawBuf ;
+    fn from_bytes<'a, T>(buf: DataBuf<'a, T>) -> Result<Self> where T: RawBuf;
 }

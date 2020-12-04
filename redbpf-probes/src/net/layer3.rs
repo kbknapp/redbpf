@@ -9,7 +9,9 @@ mod ipv4;
 
 pub use ipv4::Ipv4;
 
+use crate::buf::RawBuf;
+
 #[non_exhaustive]
-pub enum L3Proto {
-    Ipv4(Ipv4),
+pub enum L3Proto<'a, T: RawBuf> {
+    Ipv4(Ipv4<'a, T>),
 }
