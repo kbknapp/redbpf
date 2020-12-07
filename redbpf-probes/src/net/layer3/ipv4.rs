@@ -10,11 +10,11 @@ use core::mem;
 use crate::{
     bindings::iphdr,
     buf::{RawBuf, RawBufMut},
-    net::{error::{Error, Result}, DataBuf, FromBytes, Packet},
+    net::{error::{Error, Result}, NetBuf, FromBytes, Packet},
 };
 
 pub struct Ipv4<'a, T: RawBuf> {
-    buf: DataBuf<'a, T>,
+    buf: NetBuf<'a, T>,
     hdr: &'a mut iphdr,
 }
 
@@ -189,13 +189,13 @@ where
 }
 
 impl<'a, T: RawBuf> Packet for Ipv4<'a, T> {
-    fn buf(self) -> DataBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.buf
     }
 }
 
 unsafe impl<'a, T> FromBytes for Ipv4<'a, T> where T: RawBuf {
-    fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
+    fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<iphdr>();
             Ipv4 { buf, hdr: ip }

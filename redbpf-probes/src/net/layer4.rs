@@ -7,7 +7,11 @@
 
 mod tcp;
 
+use crate::buf::RawBuf;
+
+use self::tcp::Tcp;
+
 #[non_exhaustive]
-pub enum L4Proto {
-    Tcp(Tcp),
+pub enum L4Proto<'a, T> where T: RawBuf {
+    Tcp(Tcp<'a, T>),
 }

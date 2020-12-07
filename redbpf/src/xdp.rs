@@ -1,9 +1,7 @@
-use std::slice;
 use std::default::Default;
 
 use bpf_sys::{XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE,
               XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE, XDP_FLAGS_MODES, XDP_FLAGS_MASK};
-use crate::Sample;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u32)]

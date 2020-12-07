@@ -25,14 +25,18 @@ mod xdp;
 
 use crate::{
     buf::RawBuf,
-        net::error::{Result},
+    net::{
+        error::Result,
+        layer2::L2Proto,
+    },
 };
 
-pub struct DataBuf<'a, T>
-where
-    T: RawBuf,
-{
-    /// The underlying memory
+/// A pointer to a Network Buffer of raw bytes that came off the wire. `T`
+/// determines if the bytes are directly mutable (as in [`XdpContext`]) or not (
+/// as in [`SkBuff`]). This struct keeps a cursor into the buffer to keep track
+/// of currently parsed headers and the current offset of the next header and/or body.
+pub struct NetBuf<'a, T: 'a> {
+    /// The raw buffer of underlying memory and how all parsing will take place
     buf: &'a mut T,
     /// Offset from `buf.start()` where the next header/body begins
     nh_offset: usize,
@@ -40,7 +44,7 @@ where
     ftr_offset: usize,
 }
 
-impl<'a, T: RawBuf> RawBuf for DataBuf<'a, T> {
+impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
     fn start(&self) -> usize {
         self.buf.start()
     }
@@ -49,14 +53,14 @@ impl<'a, T: RawBuf> RawBuf for DataBuf<'a, T> {
     }
 }
 
-impl<'a, T: RawBuf> Packet for DataBuf<'a, T> {
-    type Encapsulated = L2Proto;
-    fn buf(self) -> DataBuf<'a, T> {
+impl<'a, T> Packet for NetBuf<'a, T> {
+    type Encapsulated = L2Proto<'a, T>;
+    fn buf(self) -> NetBuf<'a, T> {
         self
     }
 
-    fn parse_from(self) -> Result<Self::Encapsulated> {
-        todo!("impl Packet::parse_from for DataBuf")
+    fn parse_as(self) -> Result<Self::Encapsulated> {
+        todo!("impl Packet::parse_from for NetBuf")
     }
 }
 
@@ -146,12 +150,20 @@ impl_from_be!(u32);
 ///   alignment of 1)
 /// * Must also implement `Packet`
 pub trait Packet : Sized {
-    type Encapsulated;
-    fn buf<'a, T>(self) -> DataBuf<'a, T> where T: RawBuf;
+    type Encapsulated: Packet + FromBytes;
+
+    fn buf<'a, T>(&self) -> &NetBuf<'a, T>;
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
-    fn parse<T, U>(self) -> Result<U>
+    ///
+    /// # Safety
+    ///
+    /// In the default implementation the only checks that are done are to
+    /// ensure the buffer contains enough bytes from the start to hold a type of
+    /// `U`. However no checks are done to ensure the bytes represent a valid
+    /// bit pattern for a type of `U`, nor is any alignment checked.
+    unsafe fn parse_as_unchecked<T, U>(self) -> Result<U>
     where
         U: Packet + FromBytes,
         T: RawBuf,
@@ -159,11 +171,15 @@ pub trait Packet : Sized {
         U::from_bytes::<T>(self.buf())
     }
 
-    /// Uses some condition to determine the type that the bytes will be parsed
-    /// as. `Packet::Encapsulated` should be an enum which contains tuple
-    /// variants for all supported encapsulated protocols. Although there is no
-    /// way for Rust to enforce this constraint, all inner values of each tuple
-    /// variant must implement [`Packet`] and [`FromBytes`].
+    /// Parses the next bytes of a [`NetBuf`] as some further encapsulated
+    /// packet type.
+    ///
+    /// Implementors should perform all safety to checks to ensure that the
+    /// bytes being parsed represent a valid return type, and check all bounds.
+    ///
+    /// If multiple inner packet types are possible (such as Ethernet can
+    /// encapsulate both TCP or UDP) then `Packet::Encapsulated` should be an
+    /// enum which contains variants for all supported encapsulated protocols.
     ///
     /// For example, if we have a [`Ethernet`] and are unsure whether the next
     /// encapsulated packet is a [`Tcp`] or [`Udp`], but this can be determined
@@ -177,9 +193,9 @@ pub trait Packet : Sized {
     /// `rustc` older than 1.40.
     ///
     /// [0]: https://doc.rust-lang.org/reference/attributes/type_system.html#the-non_exhaustive-attribute
-    fn parse_from(self) -> Result<Self::Encapsulated>;
+    fn parse_as(self) -> Result<Self::Encapsulated>;
 }
 
 unsafe trait FromBytes : Sized {
-    fn from_bytes<'a, T>(buf: DataBuf<'a, T>) -> Result<Self> where T: RawBuf;
+    fn from_bytes<'a, T>(buf: &NetBuf<'a, T>) -> Result<Self>;
 }

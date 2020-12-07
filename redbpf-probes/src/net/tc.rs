@@ -24,6 +24,6 @@ pub mod prelude {
     pub use crate::bindings::*;
     pub use crate::helpers::*;
     pub use crate::maps::*;
-    pub use crate::socket::*;
+    pub use crate::net::socket::*;
     pub use redbpf_macros::{program, tc_action};
 }

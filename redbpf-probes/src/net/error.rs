@@ -5,7 +5,7 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use core::result::Result as StdResult;
+use core::{/* option::NoneError, */ result::Result as StdResult};
 
 pub enum Error {
     Other,
@@ -14,13 +14,13 @@ pub enum Error {
     UnsupportedTransport(u32),
     TypeFromBytes,
     UnknownProtocol,
-    NoneValueReturned
+//    NoneValueReturned
 }
 
 pub type Result<T> = StdResult<T, Error>;
 
-impl From<NoneError> for Error {
-    fn from(n: NoneError) -> Self {
-        Err(Error::NoneValueReturned)
-    }
-}
+// impl From<NoneError> for Error {
+//     fn from(n: NoneError) -> Self {
+//         Err(Error::NoneValueReturned)
+//     }
+// }

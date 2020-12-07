@@ -35,11 +35,11 @@ use core::mem;
 use crate::{
     bindings::tcphdr,
     buf::{RawBuf, RawBufMut},
-    net::{error::{Error, Result}, DataBuf, FromBytes, Packet},
+    net::{error::{Error, Result}, NetBuf, FromBytes, Packet},
 };
 
-pub struct Tcp<'a, T> where T: RawBuf{
-    buf: DataBuf<'a, T>,
+pub struct Tcp<'a, T> where T: RawBuf {
+    buf: NetBuf<'a, T>,
     hdr: &'a mut tcphdr,
 }
 
@@ -265,7 +265,7 @@ where
 impl<'a, T: RawBuf> Packet for Tcp<'a, T> {
     type Encapsulated = ();
 
-    fn buf(self) -> DataBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.buf
     }
 
@@ -275,10 +275,12 @@ impl<'a, T: RawBuf> Packet for Tcp<'a, T> {
 }
 
 unsafe impl<'a, T> FromBytes for Tcp<'a, T> where T: RawBuf {
-    fn from_bytes(mut buf: DataBuf<'a, T>) -> Result<Self> {
-        if let Some(ip) = buf.ptr_at::<tcphdr>(buf.nh_offset)?.as_mut() {
-            buf.nh_offset += mem::size_of::<tcphdr>();
-            Tcp { buf, hdr: ip }
+    fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
+        unsafe {
+            if let Some(ip) = buf.ptr_at::<tcphdr>(buf.nh_offset)?.as_mut() {
+                buf.nh_offset += mem::size_of::<tcphdr>();
+                Tcp { buf, hdr: ip }
+            }
         }
 
         Err(Error::TypeFromBytes)

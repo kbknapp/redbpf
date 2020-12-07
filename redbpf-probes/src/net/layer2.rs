@@ -10,9 +10,7 @@ mod eth;
 
 pub use eth::Ethernet;
 
-use crate::buf::RawBuf;
-
 #[non_exhaustive]
-pub enum L2Proto<'a, T: RawBuf> {
+pub enum L2Proto<'a, T> {
     Ethernet(Ethernet<'a, T>),
 }

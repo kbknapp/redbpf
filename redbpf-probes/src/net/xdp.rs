@@ -57,7 +57,7 @@ use crate::{
     bindings::*,
     buf::{RawBuf, RawBufMut},
     maps::{PerfMap as PerfMapBase, PerfMapFlags},
-    net::DataBuf,
+    net::NetBuf,
 };
 
 /// The return type for successful XDP probes.
@@ -103,8 +103,8 @@ impl<'a> XdpContext<'a> {
     /// slate data buffer with no knowledge of what type of data lives inside.
     ///
     /// [0]: crate::net::DataBuf
-    pub fn data(&mut self) -> DataBuf<'a, Self> {
-        DataBuf {
+    pub fn data(&'a mut self) -> NetBuf<'a, Self> {
+        NetBuf {
             buf: self,
             nh_offset: 0,
             ftr_offset: self.ctx.data_end as usize,
