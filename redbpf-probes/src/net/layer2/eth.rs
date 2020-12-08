@@ -17,12 +17,12 @@ use crate::{
     },
 };
 
-pub struct Ethernet<'a, T> {
+pub struct Ethernet<'a, T: RawBuf> {
     hdr: &'a mut ethhdr,
     buf: NetBuf<'a, T>,
 }
 
-impl<'a, T> Ethernet<'a, T> {
+impl<'a, T: RawBuf> Ethernet<'a, T> {
     /// Returns the Source MAC address
     pub fn source(&self) -> &[u8; 6] {
         &self.hdr.h_source
@@ -63,32 +63,33 @@ where
     }
 }
 
-impl<'a, T: RawBuf> Packet for Ethernet<'a, T> {
+impl<'a, T: RawBuf> Packet<'a, T> for Ethernet<'a, T> {
     type Encapsulated = L3Proto<'a, T>;
 
-    fn buf(self) -> NetBuf<'a, T> {
+    fn data(self) -> NetBuf<'a, T> {
         self.buf
     }
 
-    fn parse_from(self) -> Result<Self::Encapsulated> {
+    fn parse(self) -> Result<Self::Encapsulated> {
         match self.proto() {
-            p if p == ETH_P_IP as u16 => Ok(L3Proto::Ipv4(self.parse::<Ipv4>()?)),
+            p if p == ETH_P_IP as u16 => Ok(L3Proto::Ipv4(self.parse_as::<Ipv4<T>>()?)),
             _ => Err(Error::UnknownProtocol),
         }
     }
 }
 
-unsafe impl<'a, T> FromBytes for Ethernet<'a, T>
+unsafe impl<'a, T> FromBytes<'a, T> for Ethernet<'a, T>
 where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
-        if let Some(eth) = buf
-            .ptr_at::<ethhdr>(buf.nh_offset)
-            .map(|p| (p as *mut ethhdr).as_mut())?
-        {
-            buf.nh_offset += mem::size_of::<ethhdr>();
-            return Ok(Ethernet { buf, hdr: eth });
+        unsafe {
+            if let Some(eth) = buf.ptr_at::<ethhdr>(buf.nh_offset) {
+                buf.nh_offset += mem::size_of::<ethhdr>();
+                if let Some(eth) = (eth as *mut ethhdr).as_mut() {
+                    return Ok(Ethernet { buf, hdr: eth });
+                }
+            }
         }
 
         Err(Error::TypeFromBytes)

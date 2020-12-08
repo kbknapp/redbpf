@@ -14,14 +14,21 @@ by
 to provide access to the network data.
  */
 
-mod error;
+pub mod error;
 mod layer2;
 mod layer3;
 mod layer4;
-mod socket;
-mod socket_filter;
-mod tc;
-mod xdp;
+pub mod socket;
+pub mod socket_filter;
+pub mod tc;
+pub mod xdp;
+
+/// A convienience prelude to glob import all supported protocols.
+pub mod protocols {
+    pub use super::layer2::*;
+    pub use super::layer3::*;
+    pub use super::layer4::*;
+}
 
 use crate::{
     buf::RawBuf,
@@ -32,26 +39,43 @@ use crate::{
 /// determines if the bytes are directly mutable (as in [`XdpContext`]) or not (
 /// as in [`SkBuff`]). This struct keeps a cursor into the buffer to keep track
 /// of currently parsed headers and the current offset of the next header and/or body.
-pub struct NetBuf<'a, T: 'a> {
+pub struct NetBuf<'a, T: 'a + RawBuf> {
     /// The raw buffer of underlying memory and how all parsing will take place
     buf: &'a mut T,
     /// Offset from `buf.start()` where the next header/body begins
     nh_offset: usize,
 }
 
-// impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
-//     fn start(&self) -> usize {
-//         self.buf.start()
-//     }
-//     fn end(&self) -> usize {
-//         self.buf.end()
-//     }
-// }
+impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
+    pub fn data_len(&self) -> usize {
+        self.buf.start() - self.buf.end()
+    }
+}
 
-impl<'a, T> Packet for NetBuf<'a, T> {
+impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
+    fn start(&self) -> usize {
+        self.buf.start()
+    }
+    fn end(&self) -> usize {
+        self.buf.end()
+    }
+}
+
+impl<'a, T: RawBuf> Packet<'a, T> for NetBuf<'a, T> {
     type Encapsulated = L2Proto<'a, T>;
-    fn buf(self) -> NetBuf<'a, T> {
+    
+    fn data(self) -> NetBuf<'a, T> {
         self
+    }
+
+    fn parse(self) -> Result<Self::Encapsulated> {
+        panic!("<NetBuf as Packet>::parse is not implemented by design, use Packet::parse_as")
+    }
+}
+
+unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for NetBuf<'a, T> {
+    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
+        Ok(buf)
     }
 }
 
@@ -140,26 +164,20 @@ impl_from_be!(u32);
 /// * Must have an alignment of 1 (or use `#[repr(C, packed)]`, which uses an
 ///   alignment of 1)
 /// * Must also implement `Packet`
-pub trait Packet: Sized {
-    type Encapsulated: Packet + FromBytes;
+pub trait Packet<'a, T>: Sized where T: RawBuf + 'a {
+    type Encapsulated;
 
-    fn buf<T: RawBuf>(self) -> T;
+    /// Give up ownership of the underlying buffer where the cursor is currently
+    /// pointing to body/next header.
+    fn data(self) -> NetBuf<'a, T>;
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
-    ///
-    /// # Safety
-    ///
-    /// In the default implementation the only checks that are done are to
-    /// ensure the buffer contains enough bytes from the start to hold a type of
-    /// `U`. However no checks are done to ensure the bytes represent a valid
-    /// bit pattern for a type of `U`, nor is any alignment checked.
-    unsafe fn parse_as_unchecked<T, U>(self) -> Result<U>
+    fn parse_as<U>(self) -> Result<U>
     where
-        U: Packet + FromBytes,
-        T: RawBuf,
+        U: FromBytes<'a, T>,
     {
-        U::from_bytes::<T>(self.buf())
+        U::from_bytes(self.data())
     }
 
     /// Parses the next bytes of a [`NetBuf`] as some further encapsulated
@@ -184,11 +202,9 @@ pub trait Packet: Sized {
     /// `rustc` older than 1.40.
     ///
     /// [0]: https://doc.rust-lang.org/reference/attributes/type_system.html#the-non_exhaustive-attribute
-    fn parse_as(self) -> Result<Self::Encapsulated> {
-        Self::Encapsulated::from_bytes(self.buf())
-    }
+    fn parse(self) -> Result<Self::Encapsulated>;
 }
 
-unsafe trait FromBytes: Sized {
-    fn from_bytes<'a, T>(buf: NetBuf<'a, T>) -> Result<Self>;
+pub unsafe trait FromBytes<'a, T>: Sized where T: RawBuf + 'a {
+    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self>;
 }

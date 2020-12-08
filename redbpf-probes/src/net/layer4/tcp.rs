@@ -5,31 +5,6 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-// /// Returns the packet's data starting after the transport headers.
-// #[inline]
-// fn data(&self) -> NetworkResult<Data<Self>> {
-//     use Transport::*;
-//     unsafe {
-//         let base: *const c_void = match self.transport()? {
-//             TCP(hdr) => {
-//                 let mut addr = hdr as usize + mem::size_of::<tcphdr>();
-//                 let data_offset = (*hdr).doff();
-//                 if data_offset > 5 {
-//                     addr += ((data_offset - 5) * 4) as usize;
-//                 }
-//                 self.ptr_at(addr)
-//             }
-//             UDP(hdr) => self.ptr_after(hdr),
-//         }?;
-
-//         let ctx: Self = self.clone();
-//         Ok(Data {
-//             ctx,
-//             base: base as usize,
-//         })
-//     }
-// }
-
 use core::mem;
 
 use crate::{
@@ -41,12 +16,12 @@ use crate::{
     },
 };
 
-pub struct Tcp<'a, T> {
+pub struct Tcp<'a, T: RawBuf> {
     hdr: &'a mut tcphdr,
     buf: NetBuf<'a, T>,
 }
 
-impl<'a, T> Tcp<'a, T> {
+impl<'a, T: RawBuf> Tcp<'a, T> {
     /// Returns the source port (LE)
     pub fn source(&self) -> u16 {
         unimplemented!()
@@ -70,52 +45,62 @@ impl<'a, T> Tcp<'a, T> {
     /// Returns the data offset in bytes
     #[inline]
     pub fn doff(&self) -> u8 {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(4usize, 4u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(4usize, 4u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn res1(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(0usize, 4u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(0usize, 4u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn fin(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(8usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(8usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn syn(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(9usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(9usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn rst(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(10usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(10usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn psh(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(11usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(11usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn ack(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(12usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(12usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn urg(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(13usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(13usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn ece(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(14usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(14usize, 1u8) as u16) }
+        unimplemented!()
     }
 
     #[inline]
     pub fn cwr(&self) -> bool {
-        unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(15usize, 1u8) as u16) }
+        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(15usize, 1u8) as u16) }
+        unimplemented!()
     }
 }
 
@@ -126,82 +111,92 @@ where
 {
     #[inline]
     pub fn set_doff(&mut self, val: u8) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(4usize, 4u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(4usize, 4u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_res1(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(0usize, 4u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(0usize, 4u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_fin(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(8usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(8usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_syn(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(9usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(9usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_rst(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(10usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(10usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_psh(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(11usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(11usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_ack(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(12usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(12usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_urg(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(13usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(13usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_ece(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(14usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(14usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
     pub fn set_cwr(&mut self, val: bool) {
-        unsafe {
-            let val: u16 = ::core::mem::transmute(val);
-            self.hdr._bitfield_1.set(15usize, 1u8, val as u64)
-        }
+        // unsafe {
+        //     let val: u16 = ::core::mem::transmute(val);
+        //     self.hdr._bitfield_1.set(15usize, 1u8, val as u64)
+        // }
+        unimplemented!()
     }
 
     #[inline]
@@ -265,23 +260,29 @@ where
     }
 }
 
-impl<'a, T: RawBuf> Packet for Tcp<'a, T> {
+impl<'a, T: RawBuf> Packet<'a, T> for Tcp<'a, T> {
     type Encapsulated = NetBuf<'a, T>;
 
-    fn buf<'a, T>(self) -> NetBuf<'a, T> {
+    fn data(self) -> NetBuf<'a, T> {
         self.buf
+    }
+
+    fn parse(self) -> Result<Self::Encapsulated> {
+        Ok(self.buf)
     }
 }
 
-unsafe impl<'a, T> FromBytes for Tcp<'a, T>
+unsafe impl<'a, T> FromBytes<'a, T> for Tcp<'a, T>
 where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         unsafe {
-            if let Some(ip) = buf.ptr_at::<tcphdr>(buf.nh_offset)?.as_mut() {
+            if let Some(tcp) = buf.ptr_at::<tcphdr>(buf.nh_offset) {
                 buf.nh_offset += mem::size_of::<tcphdr>();
-                Tcp { buf, hdr: ip }
+                if let Some(tcp) = (tcp as *mut tcphdr).as_mut() {
+                    return Ok(Tcp { buf, hdr: tcp });
+                }
             }
         }
 

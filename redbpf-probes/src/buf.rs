@@ -165,6 +165,6 @@ pub trait RawBufMut: RawBuf {
     /// Returns the buffer as a mutable `slice` of bytes
     #[inline]
     fn as_slice_mut(&self) -> &mut [u8] {
-        self.slice_mut(0, self.len()).unwrap()
+        self.slice_at_mut(0, self.len()).unwrap()
     }
 }

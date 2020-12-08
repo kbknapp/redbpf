@@ -8,20 +8,21 @@
 use core::mem;
 
 use crate::{
-    bindings::iphdr,
+    bindings::{ETH_P_IP, iphdr},
     buf::{RawBuf, RawBufMut},
     net::{
+        layer4::{L4Proto, Tcp},
         error::{Error, Result},
         FromBytes, NetBuf, Packet,
     },
 };
 
-pub struct Ipv4<'a, T> {
+pub struct Ipv4<'a, T: RawBuf> {
     hdr: &'a mut iphdr,
     buf: NetBuf<'a, T>,
 }
 
-impl<'a, T> Ipv4<'a, T> {
+impl<'a, T: RawBuf> Ipv4<'a, T> {
     /// Returns the version of the header
     pub fn version(&self) -> u8 {
         4
@@ -55,16 +56,16 @@ impl<'a, T> Ipv4<'a, T> {
 
     /// Returns the fragmentaiton flags bitfield where:
     ///
-    /// ```
-    ///    /-- Reserved (must be zero)
-    ///   //-- Don't Fragment
-    ///  ///-- More Fragments
+    /// ```text
     /// 000
+    /// ||^~~ More Fragments
+    /// |^~~ Don't Fragment
+    /// ^~~ Reserved (must be zero)
     /// ```
     ///
     /// This bitfield is converted from a BE u16 and returned as a byte value where:
     ///
-    /// ```
+    /// ```text
     /// 0 = No fragements
     /// 2 = Don't Fragement
     /// 4 = More Fragements
@@ -191,20 +192,35 @@ where
     }
 }
 
-impl<'a, T: RawBuf> Packet for Ipv4<'a, T> {
-    fn buf(self) -> NetBuf<'a, T> {
+impl<'a, T: RawBuf> Packet<'a, T> for Ipv4<'a, T> {
+    type Encapsulated = L4Proto<'a, T>;
+
+    fn data(self) -> NetBuf<'a, T> {
         self.buf
+    }
+
+    fn parse(self) -> Result<Self::Encapsulated> {
+        match self.protocol() {
+            IPPROTO_TCP => {
+                return Ok(L4Proto::Tcp(Tcp::from_bytes(self.data())?));
+            }
+            _ => unimplemented!()
+        }
     }
 }
 
-unsafe impl<'a, T> FromBytes for Ipv4<'a, T>
+unsafe impl<'a, T> FromBytes<'a, T> for Ipv4<'a, T>
 where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
-        if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset)?.as_mut() {
-            buf.nh_offset += mem::size_of::<iphdr>();
-            Ipv4 { buf, hdr: ip }
+        unsafe {
+            if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset) {
+                buf.nh_offset += mem::size_of::<iphdr>();
+                if let Some(ip) = (ip as *mut iphdr).as_mut() {
+                    return Ok(Ipv4 { buf, hdr: ip });
+                }
+            }
         }
 
         Err(Error::TypeFromBytes)

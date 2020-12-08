@@ -47,11 +47,16 @@ pub mod prelude {
     pub use crate::bindings::*;
     pub use crate::helpers::*;
     pub use crate::maps::{HashMap, PerfMapFlags};
-    pub use crate::net::xdp::*;
     pub use crate::net::*;
+    pub use crate::net::xdp::*;
+    pub use crate::net::protocols::*;
     pub use cty::*;
     pub use redbpf_macros::{map, program, xdp};
 }
+
+use core::{
+    any::{Any, TypeId},
+};
 
 use crate::{
     bindings::*,
@@ -60,7 +65,10 @@ use crate::{
     net::NetBuf,
 };
 
+pub type XdpResult = Result<XdpAction, crate::net::error::Error>;
+
 /// The return type for successful XDP probes.
+#[derive(Copy, Clone)]
 #[repr(u32)]
 pub enum XdpAction {
     /// Signals that the program had an unexpected anomaly. Should only be used
@@ -82,6 +90,19 @@ pub enum XdpAction {
     Redirect = xdp_action_XDP_REDIRECT,
 }
 
+impl XdpAction {
+    #[doc(hidden)]
+    pub fn from_any<T: Any>(other: &T) -> Self {
+        if TypeId::of::<T>() == TypeId::of::<XdpAction>() {
+            let value_any = other as &dyn Any;
+            if let Some(action) = value_any.downcast_ref::<XdpAction>() {
+                return *action;
+            }
+        }
+        XdpAction::Pass
+    }
+}
+
 /// Context object provided to XDP programs.
 ///
 /// XDP programs are passed a `XdpContext` instance as their argument. Through
@@ -94,7 +115,7 @@ pub struct XdpContext<'a> {
 impl<'a> XdpContext<'a> {
     /// Returns the `xdp_md` context passed by the kernel.
     #[inline]
-    pub fn inner(&self) -> &mut xdp_md {
+    pub fn inner(&mut self) -> &mut xdp_md {
         self.ctx
     }
 
@@ -107,7 +128,6 @@ impl<'a> XdpContext<'a> {
         NetBuf {
             buf: self,
             nh_offset: 0,
-            ftr_offset: self.ctx.data_end as usize,
         }
     }
 }
@@ -176,7 +196,7 @@ impl<T> PerfMap<T> {
     /// `packet_size` specifies the number of bytes from the current packet that
     /// the kernel should append to the event data.
     #[inline]
-    pub fn insert(&mut self, ctx: &XdpContext, data: &MapData<T>) {
+    pub fn insert(&mut self, ctx: &mut XdpContext, data: &MapData<T>) {
         let size = data.size;
         self.0
             .insert_with_flags(ctx.inner(), data, PerfMapFlags::with_xdp_size(size))
@@ -187,7 +207,7 @@ impl<T> PerfMap<T> {
     #[inline]
     pub fn insert_with_flags(
         &mut self,
-        ctx: &XdpContext,
+        ctx: &mut XdpContext,
         data: &MapData<T>,
         mut flags: PerfMapFlags,
     ) {

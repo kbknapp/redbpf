@@ -360,15 +360,18 @@ pub fn xdp(attrs: TokenStream, item: TokenStream) -> TokenStream {
     let ident = item.sig.ident.clone();
     let outer_ident = Ident::new(&format!("outer_{}", ident), Span::call_site());
     let wrapper = parse_quote! {
-        fn #outer_ident(ctx: *mut ::redbpf_probes::bindings::xdp_md) -> ::redbpf_probes::xdp::XdpAction {
+        fn #outer_ident(ctx: *mut ::redbpf_probes::bindings::xdp_md) -> ::redbpf_probes::net::xdp::XdpAction {
             if let Some(ctx) = ctx.as_mut() {
-                let ctx = ::redbpf_probes::xdp::XdpContext { ctx };
+                let ctx = ::redbpf_probes::net::xdp::XdpContext { ctx };
                 return match #ident(ctx) {
                     Ok(action) => action,
-                    Err(_) => ::redbpf_probes::xdp::XdpAction::Pass
+                    // default is XdpAction::Pass if conversion fails
+                    Err(ref e) => ::redbpf_probes::net::xdp::XdpAction::from_any(e),
                 };
 
                 #item
+            } else {
+                ::redbpf_probes::net::xdp::XdpAction::Pass
             }
         }
     };

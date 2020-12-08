@@ -10,32 +10,44 @@ mod eth;
 
 pub use eth::Ethernet;
 
-use crate::net::{error::Result, layer3::L3Proto, Packet, NetBuf, FromBytes};
+use crate::{
+    buf::RawBuf,
+    net::{error::Result, layer3::{L3Proto, Ipv4}, NetBuf, Packet, FromBytes},
+};
 
 #[non_exhaustive]
-pub enum L2Proto<'a, T> {
+pub enum L2Proto<'a, T: RawBuf> {
     Ethernet(Ethernet<'a, T>),
 }
 
-impl<'a, T> L2Proto<'a, T> {
+impl<'a, T: RawBuf> L2Proto<'a, T> {
     fn inner_buf(self) -> NetBuf<'a, T> {
         match self {
-            L2Proto::Ethernet(eth) => eth.buf(),
+            L2Proto::Ethernet(eth) => eth.data(),
             _ => unimplemented!(),
         }
     }
 }
 
-impl<'a, T> Packet for L2Proto<'a, T> {
+impl<'a, T: RawBuf> Packet<'a, T> for L2Proto<'a, T> {
     type Encapsulated = L3Proto<'a, T>;
 
-    fn buf(self) -> NetBuf<'a, T> {
+    fn data(self) -> NetBuf<'a, T> {
         self.inner_buf()
+    }
+
+    fn parse(self) -> Result<Self::Encapsulated> {
+        match self {
+            L2Proto::Ethernet(ref eth) => {
+                match eth.proto() {
+                    ETH_P_IP => {
+                        return Ok(L3Proto::Ipv4(Ipv4::from_bytes(self.data())?));
+                    }
+                    _ => unimplemented!()
+                }
+            }
+            _ => unimplemented!()
+        }
     }
 }
 
-unsafe impl<'a, T> FromBytes for L2Proto<'a, T> {
-    fn from_bytes(buf: NetBuf<'a, T>) -> Self {
-        unimplemented!()
-    }
-}
