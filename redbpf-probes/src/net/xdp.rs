@@ -108,15 +108,18 @@ impl XdpAction {
 /// XDP programs are passed a `XdpContext` instance as their argument. Through
 /// the context, programs can inspect, modify and redirect the underlying
 /// networking data.
-pub struct XdpContext<'a> {
-    pub ctx: &'a mut xdp_md,
+pub struct XdpContext {
+    pub ctx: *mut xdp_md,
 }
 
-impl<'a> XdpContext<'a> {
+impl XdpContext {
     /// Returns the `xdp_md` context passed by the kernel.
     #[inline]
     pub fn inner(&mut self) -> &mut xdp_md {
-        self.ctx
+        if let Some(ctx) = unsafe { self.ctx.as_mut() } {
+            return ctx;
+        }
+        panic!("*xdp_md is null")
     }
 
     /// Returns a [`DataBuf`][0] with the header offset set to `0`, and footer offset
@@ -124,7 +127,7 @@ impl<'a> XdpContext<'a> {
     /// slate data buffer with no knowledge of what type of data lives inside.
     ///
     /// [0]: crate::net::DataBuf
-    pub fn data(&'a mut self) -> NetBuf<'a, Self> {
+    pub fn data<'a>(&'a mut self) -> NetBuf<'a, Self> {
         NetBuf {
             buf: self,
             nh_offset: 0,
@@ -132,17 +135,23 @@ impl<'a> XdpContext<'a> {
     }
 }
 
-impl<'a> RawBuf for XdpContext<'a> {
+impl RawBuf for XdpContext {
     fn start(&self) -> usize {
-        self.ctx.data as usize
+        if let Some(ctx) = unsafe { self.ctx.as_mut() } {
+            return ctx.data as usize;
+        }
+        panic!("*xdp_md is null")
     }
 
     fn end(&self) -> usize {
-        self.ctx.data_end as usize
+        if let Some(ctx) = unsafe { self.ctx.as_mut() } {
+            return ctx.data_end as usize;
+        }
+        panic!("*xdp_md is null")
     }
 }
 
-impl<'a> RawBufMut for XdpContext<'a> {}
+impl RawBufMut for XdpContext {}
 
 /* NB: this needs to be kept in sync with redbpf::xdp::MapData */
 /// Convenience data type to exchange payload data.
