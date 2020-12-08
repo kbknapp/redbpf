@@ -2,11 +2,7 @@
 
 use core::mem::{size_of, MaybeUninit};
 
-use crate::{
-    bindings::*,
-    helpers::bpf_skb_load_bytes,
-    net::FromBe,
-};
+use crate::{bindings::*, helpers::bpf_skb_load_bytes, net::FromBe};
 
 // Errors in socket-related programs
 pub enum SocketError {

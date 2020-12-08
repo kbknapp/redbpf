@@ -69,7 +69,7 @@ pub trait RawBuf {
     #[inline]
     unsafe fn ptr_after<T, U>(&self, prev: *const T) -> Option<*const U> {
         if self.check_bounds(prev as usize, prev as usize + mem::size_of::<T>()) {
-            return Some(self.ptr_at((prev as usize - self.start()) + mem::size_of::<T>()));
+            return self.ptr_at((prev as usize - self.start()) + mem::size_of::<T>());
         }
         None
     }
@@ -91,16 +91,18 @@ pub trait RawBuf {
     fn slice_at(&self, offset: usize, len: usize) -> Option<&[u8]> {
         unsafe {
             let start = self.start() + offset;
-            self.check_bounds(start, start + len)?;
-            let s = slice::from_raw_parts(self.as_ptr(), len);
-            Some(s)
+            if self.check_bounds(start, start + len) {
+                let s = slice::from_raw_parts(self.ptr_at(0)?, len);
+                return Some(s);
+            }
+            None
         }
     }
 
     /// Returns the buffer as a `slice` of bytes
     #[inline]
     fn as_slice(&self) -> &[u8] {
-        self.slice(0, self.len()).unwrap()
+        self.slice_at(0, self.len()).unwrap()
     }
 }
 
@@ -143,7 +145,7 @@ pub trait RawBufMut: RawBuf {
     /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
     #[inline]
     unsafe fn ptr_after_mut<T, U>(&self, prev: *const T) -> Option<*mut U> {
-        self.ptr_at(prev as usize + mem::size_of::<T>())
+        self.ptr_at_mut(prev as usize + mem::size_of::<T>())
     }
 
     /// Returns a mutable `slice` of `len` bytes starting at `offset` from the
@@ -152,9 +154,11 @@ pub trait RawBufMut: RawBuf {
     fn slice_at_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
         unsafe {
             let start = self.start() + offset;
-            self.check_bounds(start, start + len)?;
-            let s = slice::from_raw_parts_mut(self.as_mut(), len);
-            Some(s)
+            if self.check_bounds(start, start + len) {
+                let s = slice::from_raw_parts_mut(self.ptr_at_mut(0)?, len);
+                return Some(s);
+            }
+            None
         }
     }
 

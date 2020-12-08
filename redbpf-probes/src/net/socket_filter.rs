@@ -45,10 +45,7 @@ pub mod prelude {
         bindings::*,
         helpers::*,
         maps::*,
-        net::{
-            socket::*,
-            socket_filter::*,
-        },
+        net::{socket::*, socket_filter::*},
     };
 }
 
@@ -68,4 +65,3 @@ pub enum SkBuffAction {
     /// via `Socket::recv`.
     SendToUserspace,
 }
-

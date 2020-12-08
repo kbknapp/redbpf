@@ -25,10 +25,7 @@ mod xdp;
 
 use crate::{
     buf::RawBuf,
-    net::{
-        error::Result,
-        layer2::L2Proto,
-    },
+    net::{error::Result, layer2::L2Proto},
 };
 
 /// A pointer to a Network Buffer of raw bytes that came off the wire. `T`
@@ -40,27 +37,21 @@ pub struct NetBuf<'a, T: 'a> {
     buf: &'a mut T,
     /// Offset from `buf.start()` where the next header/body begins
     nh_offset: usize,
-    /// Offset from `buf.start()` where the footer begins
-    ftr_offset: usize,
 }
 
-impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
-    fn start(&self) -> usize {
-        self.buf.start()
-    }
-    fn end(&self) -> usize {
-        self.buf.end()
-    }
-}
+// impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
+//     fn start(&self) -> usize {
+//         self.buf.start()
+//     }
+//     fn end(&self) -> usize {
+//         self.buf.end()
+//     }
+// }
 
 impl<'a, T> Packet for NetBuf<'a, T> {
     type Encapsulated = L2Proto<'a, T>;
     fn buf(self) -> NetBuf<'a, T> {
         self
-    }
-
-    fn parse_as(self) -> Result<Self::Encapsulated> {
-        todo!("impl Packet::parse_from for NetBuf")
     }
 }
 
@@ -149,10 +140,10 @@ impl_from_be!(u32);
 /// * Must have an alignment of 1 (or use `#[repr(C, packed)]`, which uses an
 ///   alignment of 1)
 /// * Must also implement `Packet`
-pub trait Packet : Sized {
+pub trait Packet: Sized {
     type Encapsulated: Packet + FromBytes;
 
-    fn buf<'a, T>(&self) -> &NetBuf<'a, T>;
+    fn buf<T: RawBuf>(self) -> T;
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
@@ -193,9 +184,11 @@ pub trait Packet : Sized {
     /// `rustc` older than 1.40.
     ///
     /// [0]: https://doc.rust-lang.org/reference/attributes/type_system.html#the-non_exhaustive-attribute
-    fn parse_as(self) -> Result<Self::Encapsulated>;
+    fn parse_as(self) -> Result<Self::Encapsulated> {
+        Self::Encapsulated::from_bytes(self.buf())
+    }
 }
 
-unsafe trait FromBytes : Sized {
-    fn from_bytes<'a, T>(buf: &NetBuf<'a, T>) -> Result<Self>;
+unsafe trait FromBytes: Sized {
+    fn from_bytes<'a, T>(buf: NetBuf<'a, T>) -> Result<Self>;
 }

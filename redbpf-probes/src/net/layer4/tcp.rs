@@ -35,15 +35,18 @@ use core::mem;
 use crate::{
     bindings::tcphdr,
     buf::{RawBuf, RawBufMut},
-    net::{error::{Error, Result}, NetBuf, FromBytes, Packet},
+    net::{
+        error::{Error, Result},
+        FromBytes, NetBuf, Packet,
+    },
 };
 
-pub struct Tcp<'a, T> where T: RawBuf {
-    buf: NetBuf<'a, T>,
+pub struct Tcp<'a, T> {
     hdr: &'a mut tcphdr,
+    buf: NetBuf<'a, T>,
 }
 
-impl<'a, T> Tcp<'a, T> where T: RawBuf {
+impl<'a, T> Tcp<'a, T> {
     /// Returns the source port (LE)
     pub fn source(&self) -> u16 {
         unimplemented!()
@@ -263,18 +266,17 @@ where
 }
 
 impl<'a, T: RawBuf> Packet for Tcp<'a, T> {
-    type Encapsulated = ();
+    type Encapsulated = NetBuf<'a, T>;
 
-    fn buf(self) -> NetBuf<'a, T> {
+    fn buf<'a, T>(self) -> NetBuf<'a, T> {
         self.buf
-    }
-
-    fn parse_from(self) -> Result<Self::Encapsulated> {
-        panic!("Packet::parse_from is not implemented for Tcp")
     }
 }
 
-unsafe impl<'a, T> FromBytes for Tcp<'a, T> where T: RawBuf {
+unsafe impl<'a, T> FromBytes for Tcp<'a, T>
+where
+    T: RawBuf,
+{
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         unsafe {
             if let Some(ip) = buf.ptr_at::<tcphdr>(buf.nh_offset)?.as_mut() {

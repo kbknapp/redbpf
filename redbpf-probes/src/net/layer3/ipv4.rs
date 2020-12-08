@@ -10,15 +10,18 @@ use core::mem;
 use crate::{
     bindings::iphdr,
     buf::{RawBuf, RawBufMut},
-    net::{error::{Error, Result}, NetBuf, FromBytes, Packet},
+    net::{
+        error::{Error, Result},
+        FromBytes, NetBuf, Packet,
+    },
 };
 
-pub struct Ipv4<'a, T: RawBuf> {
-    buf: NetBuf<'a, T>,
+pub struct Ipv4<'a, T> {
     hdr: &'a mut iphdr,
+    buf: NetBuf<'a, T>,
 }
 
-impl<'a, T: RawBuf> Ipv4<'a, T> {
+impl<'a, T> Ipv4<'a, T> {
     /// Returns the version of the header
     pub fn version(&self) -> u8 {
         4
@@ -194,7 +197,10 @@ impl<'a, T: RawBuf> Packet for Ipv4<'a, T> {
     }
 }
 
-unsafe impl<'a, T> FromBytes for Ipv4<'a, T> where T: RawBuf {
+unsafe impl<'a, T> FromBytes for Ipv4<'a, T>
+where
+    T: RawBuf,
+{
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset)?.as_mut() {
             buf.nh_offset += mem::size_of::<iphdr>();
