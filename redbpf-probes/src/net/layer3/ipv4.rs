@@ -35,160 +35,159 @@ impl<'a, T: RawBuf> Ipv4<'a, T> {
     /// 20 bytes (5x32=160bits=20bytes), and a maximum value of 15, or 60 bytes
     /// (15x32=480bits=60bytes)
     pub fn ihl(&self) -> u8 {
-        unimplemented!()
+        self.hdr.ihl()
     }
 
     /// Returns the TOS (Type of Service) as a byte
     pub fn tos(&self) -> u8 {
-        unimplemented!()
+        self.hdr.tos
     }
 
-    /// Returns the total length of the packet in bytes (LE), including the
-    /// header + body
+    /// Returns the total length of the packet in bytes (in host-byte-order),
+    /// including the header + body
     pub fn tot_len(&self) -> u16 {
-        unimplemented!()
+        u16::from_be(self.hdr.tot_len)
     }
 
-    /// Returns the segment ID (in LE)
+    /// Returns the segment ID (in host-byte-order)
     pub fn id(&self) -> u16 {
-        unimplemented!()
+        u16::from_be(self.hdr.id)
     }
 
-    /// Returns the fragmentaiton flags bitfield where:
-    ///
-    /// ```text
-    /// 000
-    /// ||^~~ More Fragments
-    /// |^~~ Don't Fragment
-    /// ^~~ Reserved (must be zero)
-    /// ```
-    ///
-    /// This bitfield is converted from a BE u16 and returned as a byte value where:
-    ///
-    /// ```text
-    /// 0 = No fragements
-    /// 2 = Don't Fragement
-    /// 4 = More Fragements
-    /// ```
-    pub fn flags(&self) -> u8 {
-        unimplemented!()
+    /// Returns `true` if the DF (Don't Fragment) bit is set
+    pub fn df(&self) -> bool {
+        self.hdr.frag_off & 0x4000 == 1
     }
 
-    /// Returns the fragmentation offset (BE)
-    pub fn frag_off(&self) -> u16 {
-        unimplemented!()
+    /// Returns `true` if the MF (More Fragments) bit is set
+    pub fn mf(&self) -> bool {
+        self.hdr.frag_off & 0x2000 == 1
     }
 
     /// Returns the TTL (Time to Live)
     pub fn ttl(&self) -> u8 {
-        unimplemented!()
+        self.hdr.ttl
     }
 
     /// Returns the protocol used in the body
     pub fn protocol(&self) -> u8 {
-        unimplemented!()
+        self.hdr.protocol
     }
 
-    /// Returns the header checksum (LE)
+    /// Returns the header checksum
     pub fn check(&self) -> u16 {
-        unimplemented!()
+        self.hdr.check
     }
 
-    /// Returns the source IPv4 Address (LE)
+    /// Returns the source IPv4 Address (in host-byte-order)
     pub fn sadder(&self) -> u32 {
-        unimplemented!()
+        u32::from_be(self.hdr.saddr)
     }
 
-    /// Returns the destination IPv4 Address (LE)
+    /// Returns the destination IPv4 Address (in host-byte-order)
     pub fn dadder(&self) -> u32 {
-        unimplemented!()
+        u32::from_be(self.hdr.daddr)
     }
 }
 
-// @TODO set_* methods
 impl<'a, T> Ipv4<'a, T>
 where
     T: RawBufMut,
 {
-    /// Returns the version of the header
-    pub fn version_mut(&mut self) -> &mut u8 {
-        unimplemented!()
+    /// Sets the version of the header
+    pub fn set_version(&mut self, val: u8) {
+        self.hdr.set_version(val);
     }
 
-    /// Returns the IHL (Internet Header Length) in bytes
-    ///
-    /// The raw value is a 4 bit number which represents the number of 32 bit
-    /// words in the header. There is a minimum value of 5, which coresponds to
-    /// 20 bytes (5x32=160bits=20bytes), and a maximum value of 15, or 60 bytes
-    /// (15x32=480bits=60bytes)
-    pub fn ihl_mut(&mut self) -> &mut u8 {
-        unimplemented!()
+    /// Sets the IHL (Internet Header Length) in bytes
+    pub fn set_ihl(&mut self, val: u8) {
+        self.hdr.set_ihl(val);
     }
 
-    /// Returns the TOS (Type of Service) as a byte
-    pub fn tos_mut(&mut self) -> &mut u8 {
-        unimplemented!()
+    /// Sets the TOS (Type of Service)
+    pub fn set_tos(&mut self, val: u8) {
+        self.hdr.tos = val;
     }
 
-    /// Returns the total length of the packet in bytes (LE), including the
+    /// Sets the total length of the packet in bytes, including the
     /// header + body
-    pub fn tot_len_mut(&mut self) -> &mut u16 {
-        unimplemented!()
-    }
-
-    /// Returns the segment ID (in LE)
-    pub fn id_mut(&mut self) -> &mut u16 {
-        unimplemented!()
-    }
-
-    /// Returns the fragmentaiton flags bitfield where:
     ///
-    /// ```
-    ///    /-- Reserved (must be zero)
-    ///   //-- Don't Fragment
-    ///  ///-- More Fragments
-    /// 000
-    /// ```
+    /// **NOTE:** The value will be converted from host-byte-order to
+    /// network-byte-order as part of the write.
+    pub fn set_tot_len(&mut self, val: u16) {
+        self.hdr.tot_len = u16::to_be(val);
+    }
+
+    /// Sets the segment ID
     ///
-    /// This bitfield is converted from a BE u16 and returned as a byte value where:
+    /// **NOTE:** The value will be converted from host-byte-order to
+    /// network-byte-order as part of the write.
+    pub fn set_id(&mut self, val: u16) {
+        self.hdr.id = u16::to_be(val);
+    }
+
+    /// Sets the DF flag (Don't Fragment)
+    pub fn set_df(&mut self) {
+        self.hdr.frag_off |= 0x4000;
+    }
+
+    /// Sets/unsets the DF flag (Don't Fragment)
+    pub fn toggle_df(&mut self) {
+        self.hdr.frag_off ^= 0x4000;
+    }
+
+    /// Sets the MF flag (More Fragments)
+    pub fn set_mf(&mut self) {
+        self.hdr.frag_off |= 0x2000;
+    }
+
+    /// Sets/unsets the MF flag (More Fragments)
+    pub fn toggle_mf(&mut self) {
+        self.hdr.frag_off ^= 0x2000;
+    }
+
+    /// Sets the TTL (Time to Live)
+    pub fn set_ttl(&mut self, val: u8) {
+        self.hdr.ttl = val;
+    }
+
+    /// Decrements the TTL (Time to Live) by one (1)
+    pub fn decr_ttl(&mut self, val: u8) {
+        self.hdr.ttl -= 1;
+    }
+
+    /// Increments the TTL (Time to Live) by one (1)
+    pub fn incr_ttl(&mut self, val: u8) {
+        self.hdr.ttl += 1;
+    }
+
+    /// Sets the protocol used in the body
+    pub fn set_protocol(&mut self, val: u8) {
+        self.hdr.protocol = val;
+    }
+
+    /// Sets the header checksum
     ///
-    /// ```
-    /// 0 = No fragements
-    /// 2 = Don't Fragement
-    /// 4 = More Fragements
-    /// ```
-    pub fn flags_mut(&mut self) -> &mut u8 {
-        unimplemented!()
+    /// **NOTE:** The value will be converted from host-byte-order to
+    /// network-byte-order as part of the write.
+    pub fn set_check(&mut self, val: u16) {
+        self.hdr.check = u16::to_be(val);
     }
 
-    /// Returns the fragmentation offset (BE)
-    pub fn frag_off_mut(&mut self) -> &mut u16 {
-        unimplemented!()
+    /// Sets the source IPv4 Address
+    ///
+    /// **NOTE:** The value will be converted from host-byte-order to
+    /// network-byte-order as part of the write.
+    pub fn sadder_mut(&mut self, val: u32) {
+        self.hdr.saddr = u16::to_be(val);
     }
 
-    /// Returns the TTL (Time to Live)
-    pub fn ttl_mut(&mut self) -> &mut u8 {
-        unimplemented!()
-    }
-
-    /// Returns the protocol used in the body
-    pub fn protocol_mut(&mut self) -> &mut u8 {
-        unimplemented!()
-    }
-
-    /// Returns the header checksum (LE)
-    pub fn check_mut(&mut self) -> &mut u16 {
-        unimplemented!()
-    }
-
-    /// Returns the source IPv4 Address (LE)
-    pub fn sadder_mut(&mut self) -> &mut u32 {
-        unimplemented!()
-    }
-
-    /// Returns the destination IPv4 Address (LE)
-    pub fn dadder_mut(&mut self) -> &mut u32 {
-        unimplemented!()
+    /// Sets the destination IPv4 Address
+    ///
+    /// **NOTE:** The value will be converted from host-byte-order to
+    /// network-byte-order as part of the write.
+    pub fn dadder_mut(&mut self, val: u32) {
+        self.hdr.daddr = u16::to_be(val);
     }
 }
 

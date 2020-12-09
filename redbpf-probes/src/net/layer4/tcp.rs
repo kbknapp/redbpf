@@ -22,85 +22,93 @@ pub struct Tcp<'a, T: RawBuf> {
 }
 
 impl<'a, T: RawBuf> Tcp<'a, T> {
-    /// Returns the source port (LE)
+    /// Returns the source port in host-byte-order
     pub fn source(&self) -> u16 {
-        unimplemented!()
+        u16::from_be(self.hdr.source)
     }
 
-    /// Returns the destination port (LE)
+    /// Returns the destination port in host-byte-order
     pub fn dest(&self) -> u16 {
-        unimplemented!()
+        u16::from_be(self.hdr.dest)
     }
 
-    /// Returns the sequence number (LE)
+    /// Returns the sequence number in host-byte-order
     pub fn seq(&self) -> u32 {
-        unimplemented!()
+        u32::from_be(self.hdr.seq)
     }
 
-    /// Returns the ACK (acknowledgement) number (LE)
+    /// Returns the ACK (acknowledgement) number in host-byte-order
     pub fn ack_seq(&self) -> u32 {
-        unimplemented!()
+        u32::from_be(self.hdr.ack_seq)
     }
 
-    /// Returns the data offset in bytes
+    /// Returns the "data offset" (i.e. header length) in bytes
     #[inline]
     pub fn doff(&self) -> u8 {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(4usize, 4u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get(4, 4) as u8
     }
 
+    /// Returns `true` if any of the `RES1` ("reserved") bits are set in the TCP
+    /// flags
     #[inline]
     pub fn res1(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(0usize, 4u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get(4, 4) as u16 & 0x000F != 0
     }
 
+    /// Returns `true` if any of the `RES2` ("reserved" / `ECE` and `CWR`) bits
+    /// are set in the TCP flags
+    #[inline]
+    pub fn res2(&self) -> bool {
+        self.hdr._bitfield_1.get(14, 2) as u16 & 0x6000 != 0
+    }
+
+    /// Returns `true` if the `FIN` ("finish") bit is set in the TCP flags
     #[inline]
     pub fn fin(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(8usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(8)
     }
 
+    /// Returns `true` if the `SYN` ("synchronize") bit is set in the TCP flags
     #[inline]
     pub fn syn(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(9usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(9)
     }
 
+    /// Returns `true` if the `RST` ("reset") bit is set in the TCP flags
     #[inline]
     pub fn rst(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(10usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(10)
     }
 
+    /// Returns `true` if the `PSH` ("push") bit is set in the TCP flags
     #[inline]
     pub fn psh(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(11usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(11)
     }
 
+    /// Returns `true` if the `ACK` ("acknowledge") bit is set in the TCP flags
     #[inline]
     pub fn ack(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(12usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(12)
     }
 
+    /// Returns `true` if the `URG` ("urgent") bit is set in the TCP flags
     #[inline]
     pub fn urg(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(13usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(13)
     }
 
+    /// Returns `true` if the `ECE` ("ECN echo") bit is set in the TCP flags
     #[inline]
     pub fn ece(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(14usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(14)
     }
 
+    /// Returns `true` if the `CWR` ("congestion window reduced") bit is set in
+    /// the TCP flags
     #[inline]
     pub fn cwr(&self) -> bool {
-        //unsafe { ::core::mem::transmute(self.hdr._bitfield_1.get(15usize, 1u8) as u16) }
-        unimplemented!()
+        self.hdr._bitfield_1.get_bit(15)
     }
 }
 
@@ -109,154 +117,103 @@ impl<'a, T> Tcp<'a, T>
 where
     T: RawBufMut,
 {
+    /// Sets the source port
+    ///
+    /// **NOTE:** `val` will be converted to network-byte-order as part of the
+    /// write
+    pub fn set_source(&mut self, val: u16) {
+        self.hdr.source = u16::to_be(val);
+    }
+
+    /// Sets the destination port
+    ///
+    /// **NOTE:** `val` will be converted to network-byte-order as part of the
+    /// write
+    pub fn set_dest(&mut self, val: u16) {
+        self.hdr.dest = u16::to_be(val);
+    }
+
+    /// Sets the sequence number
+    ///
+    /// **NOTE:** `val` will be converted to network-byte-order as part of the
+    /// write
+    pub fn set_seq(&mut self, val: u32) {
+        self.hdr.dest = u32::to_be(val);
+    }
+
+    /// Sets the ACK (acknowledgement) number
+    ///
+    /// **NOTE:** `val` will be converted to network-byte-order as part of the
+    /// write
+    pub fn set_ack_seq(&mut self, val: u32) {
+        self.hdr.ack_seq = u32::from_be(val);
+    }
+
+    /// Sets the "data offset" (i.e. header length) in bytes
     #[inline]
     pub fn set_doff(&mut self, val: u8) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(4usize, 4u8, val as u64)
-        // }
-        unimplemented!()
+        self.hdr._bitfield_1.get(4, 4, val as u64)
     }
 
+    /// Sets any of the `RES1` ("reserved") bits in the TCP flags
     #[inline]
-    pub fn set_res1(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(0usize, 4u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_res1(&mut self, val: u8)  {
+        self.hdr._bitfield_1.get(0, 4, val as u64)
     }
 
+    /// Sets any of the `RES2` ("reserved" / `ECE` and `CWR`) bits in the TCP
+    /// flags
     #[inline]
-    pub fn set_fin(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(8usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_res2(&mut self, val: u8)  {
+        self.hdr._bitfield_1.get(14, 2, val as u64)
     }
 
+    /// Sets the `FIN` ("finish") bit in the TCP flags
     #[inline]
-    pub fn set_syn(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(9usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_fin(&mut self)  {
+        self.hdr._bitfield_1.set_bit(8)
     }
 
+    /// Sets the `SYN` ("synchronize") bit in the TCP flags
     #[inline]
-    pub fn set_rst(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(10usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_syn(&mut self)  {
+        self.hdr._bitfield_1.set_bit(9)
     }
 
+    /// Sets the `RST` ("reset") bit in the TCP flags
     #[inline]
-    pub fn set_psh(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(11usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_rst(&mut self)  {
+        self.hdr._bitfield_1.set_bit(10)
     }
 
+    /// Sets the `PSH` ("push") bit in the TCP flags
     #[inline]
-    pub fn set_ack(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(12usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_psh(&mut self)  {
+        self.hdr._bitfield_1.set_bit(11)
     }
 
+    /// Sets the `ACK` ("acknowledge") bit in the TCP flags
     #[inline]
-    pub fn set_urg(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(13usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_ack(&mut self)  {
+        self.hdr._bitfield_1.set_bit(12)
     }
 
+    /// Sets the `URG` ("urgent") bit in the TCP flags
     #[inline]
-    pub fn set_ece(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(14usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_urg(&mut self)  {
+        self.hdr._bitfield_1.set_bit(13)
     }
 
+    /// Sets the `ECE` ("ECN echo") bit in the TCP flags
     #[inline]
-    pub fn set_cwr(&mut self, val: bool) {
-        // unsafe {
-        //     let val: u16 = ::core::mem::transmute(val);
-        //     self.hdr._bitfield_1.set(15usize, 1u8, val as u64)
-        // }
-        unimplemented!()
+    pub fn set_ece(&mut self)  {
+        self.hdr._bitfield_1.set_bit(14)
     }
 
+    /// Sets the `CWR` ("congestion window reduced") bit in the TCP flags
     #[inline]
-    pub fn new_flags(
-        &mut self,
-        res1: u16,
-        doff: u16,
-        fin: u16,
-        syn: u16,
-        rst: u16,
-        psh: u16,
-        ack: u16,
-        urg: u16,
-        ece: u16,
-        cwr: u16,
-    ) {
-        // let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize], u8> =
-        //     Default::default();
-        // __bindgen_bitfield_unit.set(0usize, 4u8, {
-        //     let res1: u16 = unsafe { ::core::mem::transmute(res1) };
-        //     res1 as u64
-        // });
-        // __bindgen_bitfield_unit.set(4usize, 4u8, {
-        //     let doff: u16 = unsafe { ::core::mem::transmute(doff) };
-        //     doff as u64
-        // });
-        // __bindgen_bitfield_unit.set(8usize, 1u8, {
-        //     let fin: u16 = unsafe { ::core::mem::transmute(fin) };
-        //     fin as u64
-        // });
-        // __bindgen_bitfield_unit.set(9usize, 1u8, {
-        //     let syn: u16 = unsafe { ::core::mem::transmute(syn) };
-        //     syn as u64
-        // });
-        // __bindgen_bitfield_unit.set(10usize, 1u8, {
-        //     let rst: u16 = unsafe { ::core::mem::transmute(rst) };
-        //     rst as u64
-        // });
-        // __bindgen_bitfield_unit.set(11usize, 1u8, {
-        //     let psh: u16 = unsafe { ::core::mem::transmute(psh) };
-        //     psh as u64
-        // });
-        // __bindgen_bitfield_unit.set(12usize, 1u8, {
-        //     let ack: u16 = unsafe { ::core::mem::transmute(ack) };
-        //     ack as u64
-        // });
-        // __bindgen_bitfield_unit.set(13usize, 1u8, {
-        //     let urg: u16 = unsafe { ::core::mem::transmute(urg) };
-        //     urg as u64
-        // });
-        // __bindgen_bitfield_unit.set(14usize, 1u8, {
-        //     let ece: u16 = unsafe { ::core::mem::transmute(ece) };
-        //     ece as u64
-        // });
-        // __bindgen_bitfield_unit.set(15usize, 1u8, {
-        //     let cwr: u16 = unsafe { ::core::mem::transmute(cwr) };
-        //     cwr as u64
-        // });
-        // __bindgen_bitfield_unit
-        todo!("impl Tcp::new_flags")
+    pub fn set_cwr(&mut self)  {
+        self.hdr._bitfield_1.set_bit(15)
     }
 }
 
@@ -294,7 +251,7 @@ where
                 if let Some(tcp) = (tcp as *mut tcphdr).as_mut() {
                     return Ok(Tcp { buf, hdr: tcp });
                 }
-                return Err(Error::NullPtr)
+                return Err(Error::NullPtr);
             }
             Err(Error::OutOfBounds)
         }
