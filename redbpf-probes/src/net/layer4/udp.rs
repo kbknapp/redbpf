@@ -34,12 +34,12 @@ impl<'a, T: RawBuf> Udp<'a, T> {
 
     /// Returns the length (UDP header + UDP payload) in host-byte-order
     pub fn len(&self) -> u16 {
-        u32::from_be(self.hdr.len)
+        u16::from_be(self.hdr.len)
     }
 
     /// Returns the checksum in host-byte-order
     pub fn check(&self) -> u16 {
-        u32::from_be(self.hdr.check)
+        u16::from_be(self.hdr.check)
     }
 }
 
@@ -51,32 +51,32 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
-    pub fn set_source(&mut self) {
-        u16::from_be(self.hdr.source)
+    pub fn set_source(&mut self, val: u16) {
+        self.hdr.source = u16::to_be(val);
     }
 
     /// Sets the destination port
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
-    pub fn set_dest(&mut self) {
-        u16::from_be(self.hdr.dest)
+    pub fn set_dest(&mut self, val: u16) {
+        self.hdr.dest = u16::to_be(val);
     }
 
     /// Sets the length (UDP header + UDP payload)
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
-    pub fn set_len(&mut self) {
-        u32::from_be(self.hdr.len)
+    pub fn set_len(&mut self, val: u16) {
+        self.hdr.len = u16::to_be(val);
     }
 
     /// Sets the checksum
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
-    pub fn set_check(&mut self) {
-        u32::from_be(self.hdr.check)
+    pub fn set_check(&mut self, val: u16) {
+        self.hdr.check = u16::to_be(val);
     }
 }
 
@@ -109,9 +109,9 @@ where
         // - `RawBuf::ptr_at` does bounds check
         // - Using `*mut::as_mut` does null check
         unsafe {
-            if let Some(tcp) = buf.ptr_at::<tcphdr>(buf.nh_offset) {
-                buf.nh_offset += mem::size_of::<tcphdr>();
-                if let Some(tcp) = (tcp as *mut tcphdr).as_mut() {
+            if let Some(tcp) = buf.ptr_at::<udphdr>(buf.nh_offset) {
+                buf.nh_offset += mem::size_of::<udphdr>();
+                if let Some(tcp) = (tcp as *mut udphdr).as_mut() {
                     return Ok(Udp { buf, hdr: tcp });
                 }
                 return Err(Error::NullPtr);

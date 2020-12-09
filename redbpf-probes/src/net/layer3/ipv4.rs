@@ -152,12 +152,12 @@ where
     }
 
     /// Decrements the TTL (Time to Live) by one (1)
-    pub fn decr_ttl(&mut self, val: u8) {
+    pub fn decr_ttl(&mut self) {
         self.hdr.ttl -= 1;
     }
 
     /// Increments the TTL (Time to Live) by one (1)
-    pub fn incr_ttl(&mut self, val: u8) {
+    pub fn incr_ttl(&mut self) {
         self.hdr.ttl += 1;
     }
 
@@ -179,7 +179,7 @@ where
     /// **NOTE:** The value will be converted from host-byte-order to
     /// network-byte-order as part of the write.
     pub fn sadder_mut(&mut self, val: u32) {
-        self.hdr.saddr = u16::to_be(val);
+        self.hdr.saddr = u32::to_be(val);
     }
 
     /// Sets the destination IPv4 Address
@@ -187,7 +187,7 @@ where
     /// **NOTE:** The value will be converted from host-byte-order to
     /// network-byte-order as part of the write.
     pub fn dadder_mut(&mut self, val: u32) {
-        self.hdr.daddr = u16::to_be(val);
+        self.hdr.daddr = u32::to_be(val);
     }
 }
 

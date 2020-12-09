@@ -137,7 +137,7 @@ where
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
     pub fn set_seq(&mut self, val: u32) {
-        self.hdr.dest = u32::to_be(val);
+        self.hdr.seq = u32::to_be(val);
     }
 
     /// Sets the ACK (acknowledgement) number
@@ -151,68 +151,68 @@ where
     /// Sets the "data offset" (i.e. header length) in bytes
     #[inline]
     pub fn set_doff(&mut self, val: u8) {
-        self.hdr._bitfield_1.get(4, 4, val as u64)
+        self.hdr._bitfield_1.set(4, 4, val as u64);
     }
 
     /// Sets any of the `RES1` ("reserved") bits in the TCP flags
     #[inline]
     pub fn set_res1(&mut self, val: u8) {
-        self.hdr._bitfield_1.get(0, 4, val as u64)
+        self.hdr._bitfield_1.set(0, 4, val as u64);
     }
 
     /// Sets any of the `RES2` ("reserved" / `ECE` and `CWR`) bits in the TCP
     /// flags
     #[inline]
     pub fn set_res2(&mut self, val: u8) {
-        self.hdr._bitfield_1.get(14, 2, val as u64)
+        self.hdr._bitfield_1.set(14, 2, val as u64);
     }
 
     /// Sets the `FIN` ("finish") bit in the TCP flags
     #[inline]
     pub fn set_fin(&mut self) {
-        self.hdr._bitfield_1.set_bit(8)
+        self.hdr._bitfield_1.set_bit(8, true);
     }
 
     /// Sets the `SYN` ("synchronize") bit in the TCP flags
     #[inline]
     pub fn set_syn(&mut self) {
-        self.hdr._bitfield_1.set_bit(9)
+        self.hdr._bitfield_1.set_bit(9, true);
     }
 
     /// Sets the `RST` ("reset") bit in the TCP flags
     #[inline]
     pub fn set_rst(&mut self) {
-        self.hdr._bitfield_1.set_bit(10)
+        self.hdr._bitfield_1.set_bit(10, true);
     }
 
     /// Sets the `PSH` ("push") bit in the TCP flags
     #[inline]
     pub fn set_psh(&mut self) {
-        self.hdr._bitfield_1.set_bit(11)
+        self.hdr._bitfield_1.set_bit(11, true);
     }
 
     /// Sets the `ACK` ("acknowledge") bit in the TCP flags
     #[inline]
     pub fn set_ack(&mut self) {
-        self.hdr._bitfield_1.set_bit(12)
+        self.hdr._bitfield_1.set_bit(12, true);
     }
 
     /// Sets the `URG` ("urgent") bit in the TCP flags
     #[inline]
     pub fn set_urg(&mut self) {
-        self.hdr._bitfield_1.set_bit(13)
+        self.hdr._bitfield_1.set_bit(13, true);
     }
 
     /// Sets the `ECE` ("ECN echo") bit in the TCP flags
     #[inline]
     pub fn set_ece(&mut self) {
-        self.hdr._bitfield_1.set_bit(14)
+        self.hdr._bitfield_1.set_bit(14, true);
     }
 
     /// Sets the `CWR` ("congestion window reduced") bit in the TCP flags
     #[inline]
     pub fn set_cwr(&mut self) {
-        self.hdr._bitfield_1.set_bit(15)
+        self.hdr._bitfield_1.set_bit(15, true);
     }
 }
 

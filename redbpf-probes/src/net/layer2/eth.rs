@@ -62,17 +62,17 @@ where
         // - addresses + size of field do not overlap
         unsafe {
             // @SAFETY no alignment is checked because [u8; 6] has align of 1
-            let dst_ptr = self.hdr.h_source as *mut _;
+            let dst_ptr = (&mut self.hdr.h_source) as *mut _ as *mut _;
             let src_ptr = val.as_ptr();
 
             // ensure no overlap
             if dst_ptr as usize >= src_ptr as usize
-                && dst_ptr as usize <= src_ptr as usize + ETH_ALEN
+                && dst_ptr as usize <= (src_ptr as usize + ETH_ALEN as usize)
             {
                 panic!("Source and Destination addresses overlap in Ethernet::set_source");
             }
 
-            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN);
+            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN as usize);
         }
     }
 
@@ -92,17 +92,17 @@ where
         // - addresses + size of field do not overlap
         unsafe {
             // @SAFETY no alignment is checked because [u8; 6] has align of 1
-            let dst_ptr = self.hdr.h_dest as *mut _;
+            let dst_ptr = (&mut self.hdr.h_dest) as *mut _ as *mut _;
             let src_ptr = val.as_ptr();
 
             // ensure no overlap
             if dst_ptr as usize >= src_ptr as usize
-                && dst_ptr as usize <= src_ptr as usize + ETH_ALEN
+                && dst_ptr as usize <= (src_ptr as usize + ETH_ALEN as usize)
             {
                 panic!("Source and Destination addresses overlap in Ethernet::set_dest");
             }
 
-            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN);
+            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN as usize);
         }
     }
 
@@ -110,8 +110,8 @@ where
     ///
     /// **NOTE:** `val` will be converted from host-byte-order to
     /// network-byte-order (BE) as part of the write process.
-    pub fn set_proto(&self, val: u16) {
-        *self.hdr.h_proto = u16::to_be(val);
+    pub fn set_proto(&mut self, val: u16) {
+        self.hdr.h_proto = u16::to_be(val);
     }
 }
 

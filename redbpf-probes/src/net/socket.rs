@@ -47,6 +47,85 @@ impl SkBuff {
             _marker: PhantomData,
         }
     }
+
+    pub fn len(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").len }
+    }
+
+    pub fn pkt_type(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").pkt_type }
+    }
+
+    pub fn mark(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").mark }
+    }
+
+    pub fn queue_mapping(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").queue_mapping }
+    }
+    pub fn protocol(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").protocol }
+    }
+
+    /// Returns `true` if the VLAN tag is present
+    pub fn vlan_present(&self) -> bool {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_present == 1 }
+    }
+
+    pub fn vlan_tci(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_tci }
+    }
+    pub fn vlan_proto(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_proto }
+    }
+    pub fn priority(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").priority }
+    }
+    pub fn ingress_ifindex(&self) -> u32 {
+        unsafe {
+            self.skb
+                .as_ref()
+                .expect("*__sk_buff is null")
+                .ingress_ifindex
+        }
+    }
+    pub fn tc_index(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").tc_index }
+    }
+    pub fn cb(&self) -> &[u32; 5] {
+        unsafe { &self.skb.as_ref().expect("*__sk_buff is null").cb }
+    }
+    pub fn hash(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").hash }
+    }
+    pub fn tc_classid(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").tc_classid }
+    }
+    pub fn napi_id(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").napi_id }
+    }
+    pub fn family(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").family }
+    }
+    pub fn remote_ip4(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").remote_ip4 }
+    }
+    pub fn local_ip4(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").local_ip4 }
+    }
+    pub fn remote_ip6(&self) -> &[u32; 4] {
+        unsafe { &self.skb.as_ref().expect("*__sk_buff is null").remote_ip6 }
+    }
+    pub fn local_ip6(&self) -> &[u32; 4] {
+        unsafe { &self.skb.as_ref().expect("*__sk_buff is null").local_ip6 }
+    }
+
+    pub fn remote_port(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").remote_port }
+    }
+    pub fn local_port(&self) -> u32 {
+        unsafe { self.skb.as_ref().expect("*__sk_buff is null").local_port }
+    }
 }
 
 impl RawBuf for SkBuff {

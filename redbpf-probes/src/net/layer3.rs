@@ -14,7 +14,7 @@ use crate::{
     net::{
         buf::{NetBuf, RawBuf},
         error::{Error, Result},
-        layer4::{L4Proto, Tcp},
+        layer4::{L4Proto, Tcp, Udp},
         FromBytes, Packet,
     },
 };
