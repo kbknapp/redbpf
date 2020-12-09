@@ -7,8 +7,10 @@
 
 mod tcp;
 
-use crate::{
-    net::{buf::{NetBuf,RawBuf},error::Result,  Packet},
+use crate::net::{
+    buf::{NetBuf, RawBuf},
+    error::Result,
+    Packet,
 };
 
 pub use self::tcp::Tcp;

@@ -1,6 +1,9 @@
 //! Socket related type and functions
 
-use core::{marker::PhantomData, mem::{size_of, MaybeUninit}};
+use core::{
+    marker::PhantomData,
+    mem::{size_of, MaybeUninit},
+};
 
 use crate::{
     bindings::*,
@@ -41,7 +44,7 @@ impl SkBuff {
         NetBuf {
             buf: self as *const _ as *mut _,
             nh_offset: 0,
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 }

@@ -10,10 +10,10 @@ use core::mem;
 use crate::{
     bindings::{ethhdr, ETH_P_IP},
     net::{
-        buf::{NetBuf,RawBuf, RawBufMut},
+        buf::{NetBuf, RawBuf, RawBufMut},
         error::{Error, Result},
         layer3::{Ipv4, L3Proto},
-        FromBytes,  Packet,
+        FromBytes, Packet,
     },
 };
 

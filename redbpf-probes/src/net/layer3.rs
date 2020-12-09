@@ -9,8 +9,11 @@ mod ipv4;
 
 pub use ipv4::Ipv4;
 
-use crate::{
-    net::{buf::{NetBuf,RawBuf},error::Result, layer4::{L4Proto, Tcp}, FromBytes,  Packet},
+use crate::net::{
+    buf::{NetBuf, RawBuf},
+    error::Result,
+    layer4::{L4Proto, Tcp},
+    FromBytes, Packet,
 };
 
 // Because Rust enums have a size of their greatest variant we must ensure that
@@ -45,15 +48,13 @@ impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
 
     fn parse(self) -> Result<Self::Encapsulated> {
         match self {
-            L3Proto::Ipv4(ref ip) => {
-                match ip.protocol() {
-                    IPPROTO_TCP => {
-                        return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.data())?));
-                    }
-                    _ => unimplemented!()
+            L3Proto::Ipv4(ref ip) => match ip.protocol() {
+                IPPROTO_TCP => {
+                    return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.data())?));
                 }
-            }
-            _ => unimplemented!()
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
         }
     }
 }
