@@ -10,8 +10,7 @@ mod ipv4;
 pub use ipv4::Ipv4;
 
 use crate::{
-    buf::RawBuf,
-    net::{error::Result, layer4::{L4Proto, Tcp}, FromBytes, NetBuf, Packet},
+    net::{buf::{NetBuf,RawBuf},error::Result, layer4::{L4Proto, Tcp}, FromBytes,  Packet},
 };
 
 // Because Rust enums have a size of their greatest variant we must ensure that

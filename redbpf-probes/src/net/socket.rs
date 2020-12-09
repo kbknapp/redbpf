@@ -2,7 +2,15 @@
 
 use core::mem::{size_of, MaybeUninit};
 
-use crate::{bindings::*, helpers::bpf_skb_load_bytes, net::FromBe};
+use crate::{
+    bindings::*,
+    helpers::bpf_skb_load_bytes,
+    net::{
+        buf::{NetBuf, RawBuf},
+        error::{Error, Result},
+        FromBe,
+    },
+};
 
 // Errors in socket-related programs
 pub enum SocketError {
@@ -17,29 +25,48 @@ pub struct SkBuff {
 }
 
 impl SkBuff {
+    /// Returns the `__sk_buff` context passed by the kernel.
     #[inline]
-    /// Loads data from the socket buffer.
-    ///
-    /// # Example
-    /// ```no_run
-    /// use core::mem;
-    /// use memoffset::offset_of;
-    /// use redbpf_probes::socket_filter::prelude::*;
-    ///
-    /// #[socket_filter]
-    /// fn forward_tcp(skb: SkBuff) -> SkBuffResult {
-    ///     let eth_len = mem::size_of::<ethhdr>();
-    ///     let eth_proto: u16 = skb.load(offset_of!(ethhdr, h_proto))?;
-    ///     let ip_proto: u8 = skb.load(eth_len + offset_of!(iphdr, protocol))?;
-    ///
-    ///     // only parse TCP
-    ///     if !(eth_proto as u32 == ETH_P_IP && ip_proto as u32 == IPPROTO_TCP) {
-    ///         return Ok(SkBuffAction::Ignore);
-    ///     }
-    ///     Ok(SkBuffAction::SendToUserspace)
-    /// }
-    /// ```
-    pub fn load<T: FromBe>(&self, offset: usize) -> Result<T, SocketError> {
+    pub fn inner(&mut self) -> &__sk_buff {
+        if let Some(ctx) = unsafe { self.skb.as_ref() } {
+            return ctx;
+        }
+        panic!("*__sk_buff is null")
+    }
+
+    /// Returns a [`NetBuf`][0] with the header offset set to `0` since this is
+    /// a clean slate data buffer with no knowledge of what type of data lives
+    /// inside.
+    pub fn data<'a>(&'a self) -> NetBuf<'a, Self> {
+        NetBuf {
+            buf: self,
+            nh_offset: 0,
+        }
+    }
+}
+
+impl RawBuf for SkBuff {
+    fn start(&self) -> usize {
+        if let Some(ctx) = unsafe { self.skb.as_ref() } {
+            return ctx.data as usize;
+        }
+        panic!("*__sk_buff is null")
+    }
+
+    fn end(&self) -> usize {
+        if let Some(ctx) = unsafe { self.skb.as_ref() } {
+            return ctx.data_end as usize;
+        }
+        panic!("*__sk_buff is null")
+    }
+
+    #[inline]
+    fn load_be<T: FromBe>(&self, offset: usize) -> Result<T> {
+        self.load(offset).map(|val| val.from_be())
+    }
+
+    #[inline]
+    fn load<T>(&self, offset: usize) -> Result<T> {
         unsafe {
             let mut data = MaybeUninit::<T>::uninit();
             let ret = bpf_skb_load_bytes(
@@ -49,10 +76,10 @@ impl SkBuff {
                 size_of::<T>() as u32,
             );
             if ret < 0 {
-                return Err(SocketError::LoadFailed);
+                return Err(Error::LoadFailed);
             }
 
-            Ok(data.assume_init().from_be())
+            Ok(data.assume_init())
         }
     }
 }

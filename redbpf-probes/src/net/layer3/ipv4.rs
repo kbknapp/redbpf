@@ -9,11 +9,11 @@ use core::mem;
 
 use crate::{
     bindings::{ETH_P_IP, iphdr},
-    buf::{RawBuf, RawBufMut},
     net::{
         layer4::{L4Proto, Tcp},
         error::{Error, Result},
-        FromBytes, NetBuf, Packet,
+        FromBytes,  Packet,
+        buf::{RawBuf, RawBufMut, NetBuf},
     },
 };
 

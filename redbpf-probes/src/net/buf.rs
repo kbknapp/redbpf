@@ -5,7 +5,9 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use core::{mem, slice};
+use core::{mem, ptr, slice};
+
+use crate::net::{error::Result, layer2::L2Proto, FromBe, FromBytes, Packet};
 
 /// Represents a raw Buffer ("raw" meaning it works with, and gives out raw
 /// pointers) such as that pointed to by [`XdpContext`]. This trait is meant to
@@ -104,6 +106,75 @@ pub trait RawBuf {
     fn as_slice(&self) -> &[u8] {
         self.slice_at(0, self.len()).unwrap()
     }
+
+    /// Loads data from the buffer.
+    ///
+    /// **NOTE:** All data loaded from the buffer is converted from
+    /// network-byte-order into host-byte-order before being returned.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use core::mem;
+    /// use memoffset::offset_of;
+    /// use redbpf_probes::socket_filter::prelude::*;
+    ///
+    /// #[socket_filter]
+    /// fn forward_tcp(skb: SkBuff) -> SkBuffResult {
+    ///     let eth_len = mem::size_of::<ethhdr>();
+    ///
+    ///     // Load the protocols from the SkBuff
+    ///     let eth_proto: u16 = skb.load_be(offset_of!(ethhdr, h_proto))?;
+    ///     let ip_proto: u8 = skb.load(eth_len + offset_of!(iphdr, protocol))?;
+    ///
+    ///     // only parse TCP
+    ///     if !(eth_proto as u32 == ETH_P_IP && ip_proto as u32 == IPPROTO_TCP) {
+    ///         return Ok(SkBuffAction::Ignore);
+    ///     }
+    ///     Ok(SkBuffAction::SendToUserspace)
+    /// }
+    /// ```
+    #[inline]
+    fn load_be<T: FromBe>(&self, offset: usize) -> Result<T> {
+        self.load(offset).map(|val| val.from_be())
+    }
+
+    /// Loads data from the buffer.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use core::mem;
+    /// use memoffset::offset_of;
+    /// use redbpf_probes::socket_filter::prelude::*;
+    ///
+    /// #[socket_filter]
+    /// fn forward_tcp(skb: SkBuff) -> SkBuffResult {
+    ///     let eth_len = mem::size_of::<ethhdr>();
+    ///
+    ///     // Load the protocols from the SkBuff
+    ///     let eth_proto: u16 = skb.load(offset_of!(ethhdr, h_proto))?;
+    ///     let ip_proto: u8 = skb.load(eth_len + offset_of!(iphdr, protocol))?;
+    ///
+    ///     // only parse TCP
+    ///     if !(eth_proto as u32 == ETH_P_IP && ip_proto as u32 == IPPROTO_TCP) {
+    ///         return Ok(SkBuffAction::Ignore);
+    ///     }
+    ///     Ok(SkBuffAction::SendToUserspace)
+    /// }
+    /// ```
+    #[inline]
+    fn load<T>(&self, offset: usize) -> Result<T> {
+        unsafe {
+            let mut data = mem::MaybeUninit::<T>::uninit();
+            let ptr = self.ptr_at::<T>(offset)?;
+            let dst_ptr = data.as_mut_ptr();
+
+            ptr::copy_nonoverlapping(ptr, dst_ptr, mem::size_of::<T>());
+
+            Ok(data.assume_init())
+        }
+    }
 }
 
 /// Represents a raw mutable Buffer ("raw" meaning it works with, and gives out
@@ -166,5 +237,49 @@ pub trait RawBufMut: RawBuf {
     #[inline]
     fn as_slice_mut(&self) -> &mut [u8] {
         self.slice_at_mut(0, self.len()).unwrap()
+    }
+}
+
+/// A pointer to a Network Buffer of raw bytes that came off the wire. `T`
+/// determines if the bytes are directly mutable (as in [`XdpContext`]) or not (
+/// as in [`SkBuff`]). This struct keeps a cursor into the buffer to keep track
+/// of currently parsed headers and the current offset of the next header and/or body.
+pub struct NetBuf<'a, T: 'a + RawBuf> {
+    /// The raw buffer of underlying memory and how all parsing will take place
+    buf: &'a mut T,
+    /// Offset from `buf.start()` where the next header/body begins
+    nh_offset: usize,
+}
+
+impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
+    pub fn data_len(&self) -> usize {
+        self.buf.start() - self.buf.end()
+    }
+}
+
+impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
+    fn start(&self) -> usize {
+        self.buf.start()
+    }
+    fn end(&self) -> usize {
+        self.buf.end()
+    }
+}
+
+impl<'a, T: RawBuf> Packet<'a, T> for NetBuf<'a, T> {
+    type Encapsulated = L2Proto<'a, T>;
+
+    fn data(self) -> NetBuf<'a, T> {
+        self
+    }
+
+    fn parse(self) -> Result<Self::Encapsulated> {
+        panic!("<NetBuf as Packet>::parse is not implemented by design, use Packet::parse_as")
+    }
+}
+
+unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for NetBuf<'a, T> {
+    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
+        Ok(buf)
     }
 }

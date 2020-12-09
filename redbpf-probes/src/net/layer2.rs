@@ -11,8 +11,7 @@ mod eth;
 pub use eth::Ethernet;
 
 use crate::{
-    buf::RawBuf,
-    net::{error::Result, layer3::{L3Proto, Ipv4}, NetBuf, Packet, FromBytes},
+    net::{buf::{NetBuf,RawBuf},error::Result, layer3::{L3Proto, Ipv4},  Packet, FromBytes},
 };
 
 #[non_exhaustive]

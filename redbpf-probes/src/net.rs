@@ -14,6 +14,7 @@ by
 to provide access to the network data.
  */
 
+mod buf;
 pub mod error;
 mod layer2;
 mod layer3;
@@ -30,54 +31,10 @@ pub mod protocols {
     pub use super::layer4::*;
 }
 
-use crate::{
-    buf::RawBuf,
-    net::{error::Result, layer2::L2Proto},
+use crate::net::{
+    buf::{NetBuf, RawBuf},
+    error::Result,
 };
-
-/// A pointer to a Network Buffer of raw bytes that came off the wire. `T`
-/// determines if the bytes are directly mutable (as in [`XdpContext`]) or not (
-/// as in [`SkBuff`]). This struct keeps a cursor into the buffer to keep track
-/// of currently parsed headers and the current offset of the next header and/or body.
-pub struct NetBuf<'a, T: 'a + RawBuf> {
-    /// The raw buffer of underlying memory and how all parsing will take place
-    buf: &'a mut T,
-    /// Offset from `buf.start()` where the next header/body begins
-    nh_offset: usize,
-}
-
-impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
-    pub fn data_len(&self) -> usize {
-        self.buf.start() - self.buf.end()
-    }
-}
-
-impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
-    fn start(&self) -> usize {
-        self.buf.start()
-    }
-    fn end(&self) -> usize {
-        self.buf.end()
-    }
-}
-
-impl<'a, T: RawBuf> Packet<'a, T> for NetBuf<'a, T> {
-    type Encapsulated = L2Proto<'a, T>;
-    
-    fn data(self) -> NetBuf<'a, T> {
-        self
-    }
-
-    fn parse(self) -> Result<Self::Encapsulated> {
-        panic!("<NetBuf as Packet>::parse is not implemented by design, use Packet::parse_as")
-    }
-}
-
-unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for NetBuf<'a, T> {
-    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
-        Ok(buf)
-    }
-}
 
 pub trait FromBe {
     fn from_be(&self) -> Self;
@@ -164,7 +121,10 @@ impl_from_be!(u32);
 /// * Must have an alignment of 1 (or use `#[repr(C, packed)]`, which uses an
 ///   alignment of 1)
 /// * Must also implement `Packet`
-pub trait Packet<'a, T>: Sized where T: RawBuf + 'a {
+pub trait Packet<'a, T>: Sized
+where
+    T: RawBuf + 'a,
+{
     type Encapsulated;
 
     /// Give up ownership of the underlying buffer where the cursor is currently
@@ -205,6 +165,9 @@ pub trait Packet<'a, T>: Sized where T: RawBuf + 'a {
     fn parse(self) -> Result<Self::Encapsulated>;
 }
 
-pub unsafe trait FromBytes<'a, T>: Sized where T: RawBuf + 'a {
+pub unsafe trait FromBytes<'a, T>: Sized
+where
+    T: RawBuf + 'a,
+{
     fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self>;
 }

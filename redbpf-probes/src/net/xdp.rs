@@ -47,22 +47,19 @@ pub mod prelude {
     pub use crate::bindings::*;
     pub use crate::helpers::*;
     pub use crate::maps::{HashMap, PerfMapFlags};
-    pub use crate::net::*;
-    pub use crate::net::xdp::*;
     pub use crate::net::protocols::*;
+    pub use crate::net::xdp::*;
+    pub use crate::net::*;
     pub use cty::*;
     pub use redbpf_macros::{map, program, xdp};
 }
 
-use core::{
-    any::{Any, TypeId},
-};
+use core::any::{Any, TypeId};
 
 use crate::{
     bindings::*,
-    buf::{RawBuf, RawBufMut},
     maps::{PerfMap as PerfMapBase, PerfMapFlags},
-    net::NetBuf,
+    net::buf::{NetBuf, RawBuf, RawBufMut},
 };
 
 pub type XdpResult = Result<XdpAction, crate::net::error::Error>;
@@ -122,11 +119,9 @@ impl XdpContext {
         panic!("*xdp_md is null")
     }
 
-    /// Returns a [`DataBuf`][0] with the header offset set to `0`, and footer offset
-    /// set to the end of the data buffer (i.e. no footer) since this is a clean
-    /// slate data buffer with no knowledge of what type of data lives inside.
-    ///
-    /// [0]: crate::net::DataBuf
+    /// Returns a [`NetBuf`][0] with the header offset set to `0` since this is
+    /// a clean slate data buffer with no knowledge of what type of data lives
+    /// inside.
     pub fn data<'a>(&'a mut self) -> NetBuf<'a, Self> {
         NetBuf {
             buf: self,

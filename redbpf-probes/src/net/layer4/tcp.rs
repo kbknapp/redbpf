@@ -9,10 +9,10 @@ use core::mem;
 
 use crate::{
     bindings::tcphdr,
-    buf::{RawBuf, RawBufMut},
     net::{
+        buf::{NetBuf, RawBuf, RawBufMut},
         error::{Error, Result},
-        FromBytes, NetBuf, Packet,
+        FromBytes, Packet,
     },
 };
 
