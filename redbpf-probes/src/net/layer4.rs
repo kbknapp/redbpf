@@ -15,11 +15,10 @@ use crate::net::{
 
 pub use self::tcp::Tcp;
 
-use super::FromBytes;
-
-#[non_exhaustive]
 pub enum L4Proto<'a, T: RawBuf> {
     Tcp(Tcp<'a, T>),
+    #[doc(hidden)]
+    _NonExaustive
 }
 
 impl<'a, T: RawBuf> L4Proto<'a, T> {
@@ -40,11 +39,5 @@ impl<'a, T: RawBuf> Packet<'a, T> for L4Proto<'a, T> {
 
     fn parse(self) -> Result<Self::Encapsulated> {
         Ok(self.inner_buf())
-    }
-}
-
-unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for L4Proto<'a, T> {
-    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
-        unimplemented!()
     }
 }

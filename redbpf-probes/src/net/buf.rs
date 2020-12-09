@@ -111,10 +111,16 @@ pub trait RawBuf {
         self.slice_at(0, self.len()).unwrap()
     }
 
-    /// Loads data from the buffer.
+    /// Loads Big Endian (BE, network-byte-order) data from the buffer,
+    /// converting to host-byte-order prior to return.
     ///
-    /// **NOTE:** All data loaded from the buffer is converted from
-    /// network-byte-order into host-byte-order before being returned.
+    /// # Performance
+    ///
+    /// The default implementation performs a `memcpy` and performs
+    /// bounds+alignment checking. Other implementors may use other indirect
+    /// methods and omit or add additional safety checks. If one wishes to
+    /// access the buffer directly without the `memcpy` see other methods such
+    /// as [`RawBuf::ptr_at`]
     ///
     /// # Example
     ///
@@ -145,6 +151,14 @@ pub trait RawBuf {
 
     /// Loads data from the buffer.
     ///
+    /// # Performance
+    ///
+    /// The default implementation performs a `memcpy` and performs
+    /// bounds+alignment checking. Other implementors may use other indirect
+    /// methods and omit or add additional safety checks. If one wishes to
+    /// access the buffer directly without the `memcpy` see other methods such
+    /// as [`RawBuf::ptr_at`]
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -169,10 +183,48 @@ pub trait RawBuf {
     /// ```
     #[inline]
     fn load<T>(&self, offset: usize) -> Result<T> {
+        // @SAFETY
+        //
+        // Invariants that must be upheld for `T`:
+        //
+        // - Align of 1 (or #[repr(C, packed)]) in order to meet invariants listed below
+        //
+        // Invariants thats must be upheld for `MaybeUninit`
+        //
+        // - a variable of reference type must be aligned and non-NULL -
+        // zero-initializing a variable of reference type causes instantaneous
+        // undefined behavior, no matter whether that reference ever gets used
+        // to access memory (see [Rust Docs for more
+        // info](https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initialization-invariant))
+        //
+        // Invariants that must be upheld for `ptr::copy_nonoverlapping`:
+        //
+        // - src must be valid for reads of count * size_of::<T>() bytes.
+        // - dst must be valid for writes of count * size_of::<T>() bytes.
+        // - Both src and dst must be properly aligned.
+        // - The region of memory beginning at src with a size of count *
+        //   size_of::<T>() bytes must not overlap with the region of memory
+        //   beginning at dst with the same size.
+        //
+        // Checks performed:
+        //
+        // - `RawBuf::ptr_at` does bounds checking
+        // - Alignment of pointers is checked
         unsafe {
             let mut data = mem::MaybeUninit::<T>::uninit();
             if let Some(ptr) = self.ptr_at::<T>(offset) {
+                // We aren't checking that dst is not inside the buffer because
+                // the only way for that happen is if someone we had a `RawBuf`
+                // pointing to the current stack and the region requested
+                // `offset + size_of::<T>()` overlapped with dst_ptr.
                 let dst_ptr = data.as_mut_ptr();
+
+                // @SAFETY check alignment
+                if ptr as usize % mem::align_of::<T>() != 0
+                    || dst_ptr as usize % mem::align_of::<T>() != 0
+                {
+                    return Err(Error::Unaligned);
+                }
 
                 ptr::copy_nonoverlapping(ptr, dst_ptr, mem::size_of::<T>());
 

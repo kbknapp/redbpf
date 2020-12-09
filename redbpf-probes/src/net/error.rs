@@ -9,20 +9,22 @@ use core::result::Result as StdResult;
 
 pub enum Error {
     Other,
+    /// The type requested from [`RawBuf::ptr_at`] failed bounds checking
     OutOfBounds,
-    NoIPHeader,
-    UnsupportedTransport(u32),
+    /// The type requested from `FromBytes::from_bytes` failed with an unknown
+    /// error
     TypeFromBytes,
     UnknownProtocol,
     WrongProtocol,
     LoadFailed,
-    //    NoneValueReturned
+    /// The protocol found inside the network buffer has not been implemented
+    /// yet
+    UnimplementedProtocol(u32),
+    /// A raw pointer was `null`
+    NullPtr,
+    /// Pointer access was unaligned
+    Unaligned,
 }
 
 pub type Result<T> = StdResult<T, Error>;
 
-// impl From<NoneError> for Error {
-//     fn from(n: NoneError) -> Self {
-//         Err(Error::NoneValueReturned)
-//     }
-// }

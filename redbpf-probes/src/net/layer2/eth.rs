@@ -5,7 +5,9 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use core::mem;
+use core::{mem, ptr};
+
+use crate::bindings::ETH_ALEN;
 
 use crate::{
     bindings::{ethhdr, ETH_P_IP},
@@ -46,20 +48,70 @@ where
 {
     /// Sets the source MAC address.
     pub fn set_source(&mut self, val: &[u8; 6]) {
-        todo!("impl Ethernet::set_source")
+        // Invariants that must be upheld for `ptr::copy_nonoverlapping`:
+        //
+        // - src must be valid for reads of count * size_of::<T>() bytes.
+        // - dst must be valid for writes of count * size_of::<T>() bytes.
+        // - Both src and dst must be properly aligned.
+        // - The region of memory beginning at src with a size of count *
+        //   size_of::<T>() bytes must not overlap with the region of memory
+        //   beginning at dst with the same size.
+        //
+        // Checks performed:
+        //
+        // - addresses + size of field do not overlap
+        unsafe {
+            // @SAFETY no alignment is checked because [u8; 6] has align of 1
+            let dst_ptr = self.hdr.h_source as *mut _;
+            let src_ptr = val.as_ptr();
+
+            // ensure no overlap
+            if dst_ptr as usize >= src_ptr as usize
+                && dst_ptr as usize <= src_ptr as usize + ETH_ALEN
+            {
+                panic!("Source and Destination addresses overlap in Ethernet::set_source");
+            }
+
+            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN);
+        }
     }
 
     /// Sets the Destination MAC address
     pub fn set_dest(&mut self, val: &[u8; 6]) {
-        todo!("impl Ethernet::set_dest")
+        // Invariants that must be upheld for `ptr::copy_nonoverlapping`:
+        //
+        // - src must be valid for reads of count * size_of::<T>() bytes.
+        // - dst must be valid for writes of count * size_of::<T>() bytes.
+        // - Both src and dst must be properly aligned.
+        // - The region of memory beginning at src with a size of count *
+        //   size_of::<T>() bytes must not overlap with the region of memory
+        //   beginning at dst with the same size.
+        //
+        // Checks performed:
+        //
+        // - addresses + size of field do not overlap
+        unsafe {
+            // @SAFETY no alignment is checked because [u8; 6] has align of 1
+            let dst_ptr = self.hdr.h_dest as *mut _;
+            let src_ptr = val.as_ptr();
+
+            // ensure no overlap
+            if dst_ptr as usize >= src_ptr as usize
+                && dst_ptr as usize <= src_ptr as usize + ETH_ALEN
+            {
+                panic!("Source and Destination addresses overlap in Ethernet::set_dest");
+            }
+
+            ptr::copy_nonoverlapping(src_ptr, dst_ptr, ETH_ALEN);
+        }
     }
 
     /// Sets the protocol.
     ///
-    /// **NOTE:** `val` will be converted to network byte order (BE) as part of
-    /// the write process.
-    pub fn set_proto(&self, val: &u16) {
-        todo!("impl Ethernet::set_proto")
+    /// **NOTE:** `val` will be converted from host-byte-order to
+    /// network-byte-order (BE) as part of the write process.
+    pub fn set_proto(&self, val: u16) {
+        *self.hdr.h_proto = u16::to_be(val);
     }
 }
 
@@ -73,7 +125,7 @@ impl<'a, T: RawBuf> Packet<'a, T> for Ethernet<'a, T> {
     fn parse(self) -> Result<Self::Encapsulated> {
         match self.proto() {
             p if p == ETH_P_IP as u16 => Ok(L3Proto::Ipv4(self.parse_as::<Ipv4<T>>()?)),
-            _ => Err(Error::UnknownProtocol),
+            p => Err(Error::UnimplementedProtocol(p as u32)),
         }
     }
 }
@@ -83,15 +135,26 @@ where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
+        // @SAFETY
+        //
+        // The invariants must be be upheld for the type requested with
+        // `RawBuf::ptr_at`:
+        //
+        // - Alignment of 1 ( or #[repr(C, packed)])
+        //
+        // Checks performed:
+        //
+        // - `RawBuf::ptr_at` does bounds check
+        // - Using `*mut::as_mut` does null check
         unsafe {
             if let Some(eth) = buf.ptr_at::<ethhdr>(buf.nh_offset) {
                 buf.nh_offset += mem::size_of::<ethhdr>();
                 if let Some(eth) = (eth as *mut ethhdr).as_mut() {
                     return Ok(Ethernet { buf, hdr: eth });
                 }
+                return Err(Error::NullPtr);
             }
+            Err(Error::OutOfBounds)
         }
-
-        Err(Error::TypeFromBytes)
     }
 }

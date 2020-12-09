@@ -9,11 +9,14 @@ mod ipv4;
 
 pub use ipv4::Ipv4;
 
-use crate::net::{
-    buf::{NetBuf, RawBuf},
-    error::Result,
-    layer4::{L4Proto, Tcp},
-    FromBytes, Packet,
+use crate::{
+    bindings::IPPROTO_TCP,
+    net::{
+        buf::{NetBuf, RawBuf},
+        error::{Error, Result},
+        layer4::{L4Proto, Tcp},
+        FromBytes, Packet,
+    },
 };
 
 // Because Rust enums have a size of their greatest variant we must ensure that
@@ -25,9 +28,10 @@ use crate::net::{
 // mutable raw pointer to the header from the kernel bindings, and the NetBuf it
 // was created from.
 /// An enum with variants for each Layer 3 protocol that can be encapsulted by Layer 2.
-#[non_exhaustive]
 pub enum L3Proto<'a, T: RawBuf> {
     Ipv4(Ipv4<'a, T>),
+    #[doc(hidden)]
+    _NonExaustive,
 }
 
 impl<'a, T: RawBuf> L3Proto<'a, T> {
@@ -49,18 +53,12 @@ impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
     fn parse(self) -> Result<Self::Encapsulated> {
         match self {
             L3Proto::Ipv4(ref ip) => match ip.protocol() {
-                IPPROTO_TCP => {
+                p if p as u32 == IPPROTO_TCP => {
                     return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.data())?));
                 }
-                _ => unimplemented!(),
+                p => return Err(Error::UnimplementedProtocol(p as u32)),
             },
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
-    }
-}
-
-unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for L3Proto<'a, T> {
-    fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
-        unimplemented!()
     }
 }

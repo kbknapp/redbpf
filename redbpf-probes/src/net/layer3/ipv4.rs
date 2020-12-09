@@ -8,7 +8,7 @@
 use core::mem;
 
 use crate::{
-    bindings::{iphdr, ETH_P_IP},
+    bindings::{iphdr, IPPROTO_TCP},
     net::{
         buf::{NetBuf, RawBuf, RawBufMut},
         error::{Error, Result},
@@ -201,10 +201,10 @@ impl<'a, T: RawBuf> Packet<'a, T> for Ipv4<'a, T> {
 
     fn parse(self) -> Result<Self::Encapsulated> {
         match self.protocol() {
-            IPPROTO_TCP => {
+            p if p as u32 == IPPROTO_TCP => {
                 return Ok(L4Proto::Tcp(Tcp::from_bytes(self.data())?));
             }
-            _ => unimplemented!(),
+            p => return Err(Error::UnimplementedProtocol(p as u32)),
         }
     }
 }
@@ -214,15 +214,26 @@ where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
+        // @SAFETY
+        //
+        // The invariants must be be upheld for the type requested with
+        // `RawBuf::ptr_at`:
+        //
+        // - Alignment of 1 ( or #[repr(C, packed)])
+        //
+        // Checks performed:
+        //
+        // - `RawBuf::ptr_at` does bounds check
+        // - Using `*mut::as_mut` does null check
         unsafe {
             if let Some(ip) = buf.ptr_at::<iphdr>(buf.nh_offset) {
                 buf.nh_offset += mem::size_of::<iphdr>();
                 if let Some(ip) = (ip as *mut iphdr).as_mut() {
                     return Ok(Ipv4 { buf, hdr: ip });
                 }
+                return Err(Error::NullPtr)
             }
+            Err(Error::OutOfBounds)
         }
-
-        Err(Error::TypeFromBytes)
     }
 }

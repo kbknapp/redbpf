@@ -277,15 +277,26 @@ where
     T: RawBuf,
 {
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
+        // @SAFETY
+        //
+        // The invariants must be be upheld for the type requested with
+        // `RawBuf::ptr_at`:
+        //
+        // - Alignment of 1 ( or #[repr(C, packed)])
+        //
+        // Checks performed:
+        //
+        // - `RawBuf::ptr_at` does bounds check
+        // - Using `*mut::as_mut` does null check
         unsafe {
             if let Some(tcp) = buf.ptr_at::<tcphdr>(buf.nh_offset) {
                 buf.nh_offset += mem::size_of::<tcphdr>();
                 if let Some(tcp) = (tcp as *mut tcphdr).as_mut() {
                     return Ok(Tcp { buf, hdr: tcp });
                 }
+                return Err(Error::NullPtr)
             }
+            Err(Error::OutOfBounds)
         }
-
-        Err(Error::TypeFromBytes)
     }
 }

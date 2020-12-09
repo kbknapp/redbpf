@@ -36,6 +36,13 @@ use crate::net::{
     error::Result,
 };
 
+/// A marker trait to mark types thats are aligned (have an alignment of 1).
+///
+/// Types can be marked to have an alignment of 1 either via `#[repr(align(1))]`
+/// or `#[repr(C, packed)]`. A struct marked as `Unaligned` should also require
+/// that all fields are `Unaligned` as well.
+pub unsafe trait Unaligned {}
+
 pub trait FromBe {
     fn from_be(&self) -> Self;
 }
