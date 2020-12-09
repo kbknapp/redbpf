@@ -10,7 +10,7 @@ mod ipv4;
 pub use ipv4::Ipv4;
 
 use crate::{
-    bindings::IPPROTO_TCP,
+    bindings::{IPPROTO_TCP, IPPROTO_UDP},
     net::{
         buf::{NetBuf, RawBuf},
         error::{Error, Result},
@@ -55,6 +55,9 @@ impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
             L3Proto::Ipv4(ref ip) => match ip.protocol() {
                 p if p as u32 == IPPROTO_TCP => {
                     return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.data())?));
+                }
+                p if p as u32 == IPPROTO_UDP => {
+                    return Ok(L4Proto::Udp(Udp::<T>::from_bytes(self.data())?));
                 }
                 p => return Err(Error::UnimplementedProtocol(p as u32)),
             },

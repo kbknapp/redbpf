@@ -6,6 +6,7 @@
 // copied, modified, or distributed except according to those terms.
 
 mod tcp;
+mod udp;
 
 use crate::net::{
     buf::{NetBuf, RawBuf},
@@ -13,12 +14,13 @@ use crate::net::{
     Packet,
 };
 
-pub use self::tcp::Tcp;
+pub use self::{tcp::Tcp, udp::Udp};
 
 pub enum L4Proto<'a, T: RawBuf> {
     Tcp(Tcp<'a, T>),
+    Udp(Udp<'a, T>),
     #[doc(hidden)]
-    _NonExaustive
+    _NonExaustive,
 }
 
 impl<'a, T: RawBuf> L4Proto<'a, T> {
