@@ -5,9 +5,13 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use core::{mem, ptr, slice};
+use core::{marker::PhantomData, mem, ptr, slice};
 
-use crate::net::{error::Result, layer2::L2Proto, FromBe, FromBytes, Packet};
+use crate::net::{
+    error::{Error, Result},
+    layer2::L2Proto,
+    FromBe, FromBytes, Packet,
+};
 
 /// Represents a raw Buffer ("raw" meaning it works with, and gives out raw
 /// pointers) such as that pointed to by [`XdpContext`]. This trait is meant to
@@ -136,7 +140,7 @@ pub trait RawBuf {
     /// ```
     #[inline]
     fn load_be<T: FromBe>(&self, offset: usize) -> Result<T> {
-        self.load(offset).map(|val| val.from_be())
+        self.load(offset).map(|val: T| val.from_be())
     }
 
     /// Loads data from the buffer.
@@ -167,12 +171,14 @@ pub trait RawBuf {
     fn load<T>(&self, offset: usize) -> Result<T> {
         unsafe {
             let mut data = mem::MaybeUninit::<T>::uninit();
-            let ptr = self.ptr_at::<T>(offset)?;
-            let dst_ptr = data.as_mut_ptr();
+            if let Some(ptr) = self.ptr_at::<T>(offset) {
+                let dst_ptr = data.as_mut_ptr();
 
-            ptr::copy_nonoverlapping(ptr, dst_ptr, mem::size_of::<T>());
+                ptr::copy_nonoverlapping(ptr, dst_ptr, mem::size_of::<T>());
 
-            Ok(data.assume_init())
+                return Ok(data.assume_init());
+            }
+            Err(Error::LoadFailed)
         }
     }
 }
@@ -246,23 +252,30 @@ pub trait RawBufMut: RawBuf {
 /// of currently parsed headers and the current offset of the next header and/or body.
 pub struct NetBuf<'a, T: 'a + RawBuf> {
     /// The raw buffer of underlying memory and how all parsing will take place
-    buf: &'a mut T,
+    pub(crate) buf: *mut T,
     /// Offset from `buf.start()` where the next header/body begins
-    nh_offset: usize,
+    pub(crate) nh_offset: usize,
+    pub(crate) _marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
     pub fn data_len(&self) -> usize {
-        self.buf.start() - self.buf.end()
+        self.start() - self.end()
     }
 }
 
 impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
     fn start(&self) -> usize {
-        self.buf.start()
+        if let Some(buf) = unsafe { self.buf.as_ref() } {
+            return buf.start();
+        }
+        panic!("Pointer to RawBuf is null")
     }
     fn end(&self) -> usize {
-        self.buf.end()
+        if let Some(buf) = unsafe { self.buf.as_ref() } {
+            return buf.end();
+        }
+        panic!("Pointer to RawBuf is null")
     }
 }
 

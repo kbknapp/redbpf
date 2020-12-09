@@ -54,7 +54,7 @@ pub mod prelude {
     pub use redbpf_macros::{map, program, xdp};
 }
 
-use core::any::{Any, TypeId};
+use core::{marker::PhantomData, any::{Any, TypeId}};
 
 use crate::{
     bindings::*,
@@ -124,8 +124,9 @@ impl XdpContext {
     /// inside.
     pub fn data<'a>(&'a mut self) -> NetBuf<'a, Self> {
         NetBuf {
-            buf: self,
+            buf: self as *mut _,
             nh_offset: 0,
+            _marker: PhantomData
         }
     }
 }

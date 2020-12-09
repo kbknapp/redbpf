@@ -14,7 +14,8 @@ pub enum Error {
     UnsupportedTransport(u32),
     TypeFromBytes,
     UnknownProtocol,
-    WrongProtocol
+    WrongProtocol,
+    LoadFailed,
     //    NoneValueReturned
 }
 

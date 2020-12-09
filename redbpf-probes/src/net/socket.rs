@@ -1,6 +1,6 @@
 //! Socket related type and functions
 
-use core::mem::{size_of, MaybeUninit};
+use core::{marker::PhantomData, mem::{size_of, MaybeUninit}};
 
 use crate::{
     bindings::*,
@@ -39,8 +39,9 @@ impl SkBuff {
     /// inside.
     pub fn data<'a>(&'a self) -> NetBuf<'a, Self> {
         NetBuf {
-            buf: self,
+            buf: self as *const _ as *mut _,
             nh_offset: 0,
+            _marker: PhantomData
         }
     }
 }
@@ -62,7 +63,7 @@ impl RawBuf for SkBuff {
 
     #[inline]
     fn load_be<T: FromBe>(&self, offset: usize) -> Result<T> {
-        self.load(offset).map(|val| val.from_be())
+        self.load(offset).map(|val: T| val.from_be())
     }
 
     #[inline]
