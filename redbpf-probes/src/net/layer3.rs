@@ -38,7 +38,15 @@ impl<'a, T: RawBuf> L3Proto<'a, T> {
     #[inline(always)]
     fn inner_buf(self) -> NetBuf<'a, T> {
         match self {
-            L3Proto::Ipv4(ip) => ip.data(),
+            L3Proto::Ipv4(ip) => ip.buf(),
+            _ => unimplemented!(),
+        }
+    }
+
+    #[inline(always)]
+    fn inner_buf_ref(&self) -> &NetBuf<'a, T> {
+        match self {
+            L3Proto::Ipv4(ip)=> ip.buf_ref(),
             _ => unimplemented!(),
         }
     }
@@ -48,8 +56,29 @@ impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
     type Encapsulated = L4Proto<'a, T>;
 
     #[inline(always)]
-    fn data(self) -> NetBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.inner_buf()
+    }
+
+    #[inline(always)]
+    fn buf_ref(&self) -> &NetBuf<'a, T> {
+        self.inner_buf_ref()
+    }
+
+    #[inline(always)]
+    fn offset(&self) -> usize {
+        self.inner_buf_ref().offset()
+    }
+
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.inner_buf_ref().end() - (self.inner_buf_ref().start() + self.offset())
+    }
+
+    #[inline(always)]
+    fn body(&self) -> &[u8] {
+        let buf = self.inner_buf_ref();
+        buf.slice_at(self.offset(), buf.end() - (buf.start() + self.offset()))
     }
 
     #[inline(always)]
@@ -57,10 +86,10 @@ impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
         match self {
             L3Proto::Ipv4(ref ip) => match ip.protocol() {
                 p if p as u32 == IPPROTO_TCP => {
-                    return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.data())?));
+                    return Ok(L4Proto::Tcp(Tcp::<T>::from_bytes(self.buf())?));
                 }
                 p if p as u32 == IPPROTO_UDP => {
-                    return Ok(L4Proto::Udp(Udp::<T>::from_bytes(self.data())?));
+                    return Ok(L4Proto::Udp(Udp::<T>::from_bytes(self.buf())?));
                 }
                 p => return Err(Error::UnimplementedProtocol(p as u32)),
             },

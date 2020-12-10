@@ -137,7 +137,23 @@ where
 
     /// Give up ownership of the underlying buffer where the cursor is currently
     /// pointing to body/next header.
-    fn data(self) -> NetBuf<'a, T>;
+    fn buf(self) -> NetBuf<'a, T>;
+
+    /// Give a reference to the underlying buffer where the cursor is currently
+    /// pointing to body/next header.
+    fn buf_ref(&self) -> &NetBuf<'a, T>;
+
+    /// Returns the offset from the start of the underlying buffer to the current 
+    /// packet body/next header
+    fn offset(&self) -> usize;
+
+    /// Returns a slice to the body of the packet
+    fn body(&self) -> &[u8];
+
+    /// Returns the length (in bytes) the packet body
+    /// 
+    /// Equivalent to the underlying buffer length minus all currently parsed headers
+    fn len(&self) -> usize;
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
@@ -146,7 +162,7 @@ where
     where
         U: FromBytes<'a, T>,
     {
-        U::from_bytes(self.data())
+        U::from_bytes(self.buf())
     }
 
     /// Parses the next bytes of a [`NetBuf`] as some further encapsulated

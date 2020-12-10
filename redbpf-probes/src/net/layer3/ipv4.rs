@@ -223,18 +223,38 @@ impl<'a, T: RawBuf> Packet<'a, T> for Ipv4<'a, T> {
     type Encapsulated = L4Proto<'a, T>;
 
     #[inline(always)]
-    fn data(self) -> NetBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.buf
+    }
+
+    #[inline(always)]
+    fn buf_ref(&self) -> &NetBuf<'a, T> {
+        &self.buf
+    }
+
+    #[inline(always)]
+    fn offset(&self) -> usize {
+        self.buf.offset()
+    }
+
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.buf.end() - (self.buf.start() + self.offset())
+    }
+
+    #[inline(always)]
+    fn body(&self) -> &[u8] {
+        self.buf.slice_at(self.offset(), self.buf.end() - (self.buf.start() + self.offset()))
     }
 
     #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         match self.protocol() {
             p if p as u32 == IPPROTO_TCP => {
-                return Ok(L4Proto::Tcp(Tcp::from_bytes(self.data())?));
+                return Ok(L4Proto::Tcp(Tcp::from_bytes(self.buf())?));
             }
             p if p as u32 == IPPROTO_UDP => {
-                return Ok(L4Proto::Udp(Udp::from_bytes(self.data())?));
+                return Ok(L4Proto::Udp(Udp::from_bytes(self.buf())?));
             }
             p => return Err(Error::UnimplementedProtocol(p as u32)),
         }

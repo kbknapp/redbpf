@@ -95,21 +95,23 @@ pub trait RawBuf {
 
     /// Returns a `slice` of `len` bytes starting at `offset` from the buffer
     #[inline]
-    fn slice_at(&self, offset: usize, len: usize) -> Option<&[u8]> {
+    fn slice_at(&self, offset: usize, len: usize) -> &[u8] {
         unsafe {
             let start = self.start() + offset;
             if self.check_bounds(start, start + len) {
-                let s = slice::from_raw_parts(self.ptr_at(0)?, len);
-                return Some(s);
+                if let Some(ptr) = self.ptr_at(0) {
+                    let s = slice::from_raw_parts(ptr, len);
+                    return s;
+                }
             }
-            None
+            &[]
         }
     }
 
     /// Returns the buffer as a `slice` of bytes
     #[inline]
     fn as_slice(&self) -> &[u8] {
-        self.slice_at(0, self.len()).unwrap()
+        self.slice_at(0, self.len())
     }
 
     /// Loads Big Endian (BE, network-byte-order) data from the buffer,
@@ -281,21 +283,23 @@ pub trait RawBufMut: RawBuf {
     /// Returns a mutable `slice` of `len` bytes starting at `offset` from the
     /// buffer
     #[inline]
-    fn slice_at_mut(&self, offset: usize, len: usize) -> Option<&mut [u8]> {
+    fn slice_at_mut(&self, offset: usize, len: usize) -> &mut [u8] {
         unsafe {
             let start = self.start() + offset;
             if self.check_bounds(start, start + len) {
-                let s = slice::from_raw_parts_mut(self.ptr_at_mut(0)?, len);
-                return Some(s);
+                if let Some(ptr) = self.ptr_at_mut(0) {
+                    let s = slice::from_raw_parts_mut(ptr, len);
+                    return s;
+                }
             }
-            None
+            &mut []
         }
     }
 
     /// Returns the buffer as a mutable `slice` of bytes
     #[inline]
     fn as_slice_mut(&self) -> &mut [u8] {
-        self.slice_at_mut(0, self.len()).unwrap()
+        self.slice_at_mut(0, self.len())
     }
 }
 
@@ -311,10 +315,10 @@ pub struct NetBuf<'a, T: 'a + RawBuf> {
     pub(crate) _marker: PhantomData<&'a mut T>,
 }
 
-impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
+impl<'a, T: 'a + RawBufMut> NetBuf<'a, T> {
     #[inline(always)]
-    pub fn data_len(&self) -> usize {
-        self.start() - self.end()
+    pub fn body_mut(&mut self) -> &mut [u8] {
+        self.slice_at_mut(self.nh_offset, self.end() - (self.start() + self.nh_offset))
     }
 }
 
@@ -335,12 +339,34 @@ impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
     }
 }
 
+impl<'a, T: RawBufMut> RawBufMut for NetBuf<'a, T> {}
+
 impl<'a, T: RawBuf> Packet<'a, T> for NetBuf<'a, T> {
     type Encapsulated = L2Proto<'a, T>;
 
     #[inline(always)]
-    fn data(self) -> NetBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self
+    }
+
+    #[inline(always)]
+    fn buf_ref(&self) -> &NetBuf<'a, T> {
+        self
+    }
+
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.end() - (self.start() + self.offset())
+    }
+
+    #[inline(always)]
+    fn offset(&self) -> usize {
+        self.nh_offset
+    }
+
+    #[inline(always)]
+    fn body(&self) -> &[u8] {
+        self.slice_at(self.offset(), self.end() - (self.start() + self.offset()))
     }
 
     #[inline(always)]

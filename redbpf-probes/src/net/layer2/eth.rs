@@ -125,8 +125,28 @@ impl<'a, T: RawBuf> Packet<'a, T> for Ethernet<'a, T> {
     type Encapsulated = L3Proto<'a, T>;
 
     #[inline(always)]
-    fn data(self) -> NetBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.buf
+    }
+
+    #[inline(always)]
+    fn buf_ref(&self) -> &NetBuf<'a, T> {
+        &self.buf
+    }
+
+    #[inline(always)]
+    fn offset(&self) -> usize {
+        self.buf.offset()
+    }
+
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.buf.end() - (self.buf.start() + self.offset())
+    }
+
+    #[inline(always)]
+    fn body(&self) -> &[u8] {
+        self.buf.slice_at(self.offset(), self.buf.end() - (self.buf.start() + self.offset()))
     }
 
     #[inline(always)]

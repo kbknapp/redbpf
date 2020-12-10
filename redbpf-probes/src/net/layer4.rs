@@ -27,7 +27,15 @@ impl<'a, T: RawBuf> L4Proto<'a, T> {
     #[inline(always)]
     fn inner_buf(self) -> NetBuf<'a, T> {
         match self {
-            L4Proto::Tcp(tcp) => tcp.data(),
+            L4Proto::Tcp(tcp) => tcp.buf(),
+            _ => unimplemented!(),
+        }
+    }
+
+    #[inline(always)]
+    fn inner_buf_ref(&self) -> &NetBuf<'a, T> {
+        match self {
+            L4Proto::Tcp(tcp) => tcp.buf_ref(),
             _ => unimplemented!(),
         }
     }
@@ -37,8 +45,29 @@ impl<'a, T: RawBuf> Packet<'a, T> for L4Proto<'a, T> {
     type Encapsulated = NetBuf<'a, T>;
 
     #[inline(always)]
-    fn data(self) -> NetBuf<'a, T> {
+    fn buf(self) -> NetBuf<'a, T> {
         self.inner_buf()
+    }
+
+    #[inline(always)]
+    fn buf_ref(&self) -> &NetBuf<'a, T> {
+        self.inner_buf_ref()
+    }
+
+    #[inline(always)]
+    fn offset(&self) -> usize {
+        self.inner_buf_ref().offset()
+    }
+
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.inner_buf_ref().end() - (self.inner_buf_ref().start() + self.offset())
+    }
+
+    #[inline(always)]
+    fn body(&self) -> &[u8] {
+        let buf = self.inner_buf_ref();
+        buf.slice_at(self.offset(), buf.end() - (buf.start() + self.offset()))
     }
 
     #[inline(always)]
