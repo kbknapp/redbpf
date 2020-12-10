@@ -53,8 +53,9 @@ pub trait RawBuf {
     /// [`RawBuf::check_bounds`]: crate::RawBuf::check_bounds
     #[inline]
     unsafe fn ptr_at<U>(&self, offset: usize) -> Option<*const U> {
-        if self.check_bound(offset + mem::size_of::<U>()) {
-            return Some(offset as *const U);
+        let base = self.start() + offset;
+        if self.check_bound(base + mem::size_of::<U>()) {
+            return Some(base as *const U);
         }
         None
     }
@@ -311,18 +312,21 @@ pub struct NetBuf<'a, T: 'a + RawBuf> {
 }
 
 impl<'a, T: 'a + RawBuf> NetBuf<'a, T> {
+    #[inline(always)]
     pub fn data_len(&self) -> usize {
         self.start() - self.end()
     }
 }
 
 impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
+    #[inline(always)]
     fn start(&self) -> usize {
         if let Some(buf) = unsafe { self.buf.as_ref() } {
             return buf.start();
         }
         panic!("Pointer to RawBuf is null")
     }
+    #[inline(always)]
     fn end(&self) -> usize {
         if let Some(buf) = unsafe { self.buf.as_ref() } {
             return buf.end();
@@ -334,16 +338,19 @@ impl<'a, T: RawBuf> RawBuf for NetBuf<'a, T> {
 impl<'a, T: RawBuf> Packet<'a, T> for NetBuf<'a, T> {
     type Encapsulated = L2Proto<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
-        panic!("<NetBuf as Packet>::parse is not implemented by design, use Packet::parse_as")
+        Err(Error::UnsupportedMethod)
     }
 }
 
 unsafe impl<'a, T: RawBuf> FromBytes<'a, T> for NetBuf<'a, T> {
+    #[inline(always)]
     fn from_bytes(buf: NetBuf<'a, T>) -> Result<Self> {
         Ok(buf)
     }

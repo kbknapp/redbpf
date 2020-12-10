@@ -40,6 +40,7 @@ impl SkBuff {
     /// Returns a [`NetBuf`][0] with the header offset set to `0` since this is
     /// a clean slate data buffer with no knowledge of what type of data lives
     /// inside.
+    #[inline(always)]
     pub fn data<'a>(&'a self) -> NetBuf<'a, Self> {
         NetBuf {
             buf: self as *const _ as *mut _,
@@ -48,39 +49,49 @@ impl SkBuff {
         }
     }
 
+    #[inline(always)]
     pub fn len(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").len }
     }
 
+    #[inline(always)]
     pub fn pkt_type(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").pkt_type }
     }
 
+    #[inline(always)]
     pub fn mark(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").mark }
     }
 
+    #[inline(always)]
     pub fn queue_mapping(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").queue_mapping }
     }
+    #[inline(always)]
     pub fn protocol(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").protocol }
     }
 
     /// Returns `true` if the VLAN tag is present
+    #[inline(always)]
     pub fn vlan_present(&self) -> bool {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_present == 1 }
     }
 
+    #[inline(always)]
     pub fn vlan_tci(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_tci }
     }
+    #[inline(always)]
     pub fn vlan_proto(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").vlan_proto }
     }
+    #[inline(always)]
     pub fn priority(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").priority }
     }
+    #[inline(always)]
     pub fn ingress_ifindex(&self) -> u32 {
         unsafe {
             self.skb
@@ -89,46 +100,59 @@ impl SkBuff {
                 .ingress_ifindex
         }
     }
+    #[inline(always)]
     pub fn tc_index(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").tc_index }
     }
+    #[inline(always)]
     pub fn cb(&self) -> &[u32; 5] {
         unsafe { &self.skb.as_ref().expect("*__sk_buff is null").cb }
     }
+    #[inline(always)]
     pub fn hash(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").hash }
     }
+    #[inline(always)]
     pub fn tc_classid(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").tc_classid }
     }
+    #[inline(always)]
     pub fn napi_id(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").napi_id }
     }
+    #[inline(always)]
     pub fn family(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").family }
     }
+    #[inline(always)]
     pub fn remote_ip4(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").remote_ip4 }
     }
+    #[inline(always)]
     pub fn local_ip4(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").local_ip4 }
     }
+    #[inline(always)]
     pub fn remote_ip6(&self) -> &[u32; 4] {
         unsafe { &self.skb.as_ref().expect("*__sk_buff is null").remote_ip6 }
     }
+    #[inline(always)]
     pub fn local_ip6(&self) -> &[u32; 4] {
         unsafe { &self.skb.as_ref().expect("*__sk_buff is null").local_ip6 }
     }
 
+    #[inline(always)]
     pub fn remote_port(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").remote_port }
     }
+    #[inline(always)]
     pub fn local_port(&self) -> u32 {
         unsafe { self.skb.as_ref().expect("*__sk_buff is null").local_port }
     }
 }
 
 impl RawBuf for SkBuff {
+    #[inline(always)]
     fn start(&self) -> usize {
         if let Some(ctx) = unsafe { self.skb.as_ref() } {
             return ctx.data as usize;
@@ -136,6 +160,7 @@ impl RawBuf for SkBuff {
         panic!("*__sk_buff is null")
     }
 
+    #[inline(always)]
     fn end(&self) -> usize {
         if let Some(ctx) = unsafe { self.skb.as_ref() } {
             return ctx.data_end as usize;

@@ -24,6 +24,7 @@ pub enum L4Proto<'a, T: RawBuf> {
 }
 
 impl<'a, T: RawBuf> L4Proto<'a, T> {
+    #[inline(always)]
     fn inner_buf(self) -> NetBuf<'a, T> {
         match self {
             L4Proto::Tcp(tcp) => tcp.data(),
@@ -35,10 +36,12 @@ impl<'a, T: RawBuf> L4Proto<'a, T> {
 impl<'a, T: RawBuf> Packet<'a, T> for L4Proto<'a, T> {
     type Encapsulated = NetBuf<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self.inner_buf()
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         Ok(self.inner_buf())
     }

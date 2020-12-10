@@ -26,17 +26,20 @@ pub struct Ethernet<'a, T: RawBuf> {
 
 impl<'a, T: RawBuf> Ethernet<'a, T> {
     /// Returns the Source MAC address
+    #[inline(always)]
     pub fn source(&self) -> &[u8; 6] {
         &self.hdr.h_source
     }
 
     /// Returns the Destination MAC address
+    #[inline(always)]
     pub fn dest(&self) -> &[u8; 6] {
         &self.hdr.h_dest
     }
 
     // @TODO Use an enum?
     /// Returns protocol in host byte order
+    #[inline(always)]
     pub fn proto(&self) -> u16 {
         u16::from_be(self.hdr.h_proto)
     }
@@ -47,6 +50,7 @@ where
     T: RawBufMut,
 {
     /// Sets the source MAC address.
+    #[inline(always)]
     pub fn set_source(&mut self, val: &[u8; 6]) {
         // Invariants that must be upheld for `ptr::copy_nonoverlapping`:
         //
@@ -77,6 +81,7 @@ where
     }
 
     /// Sets the Destination MAC address
+    #[inline(always)]
     pub fn set_dest(&mut self, val: &[u8; 6]) {
         // Invariants that must be upheld for `ptr::copy_nonoverlapping`:
         //
@@ -110,6 +115,7 @@ where
     ///
     /// **NOTE:** `val` will be converted from host-byte-order to
     /// network-byte-order (BE) as part of the write process.
+    #[inline(always)]
     pub fn set_proto(&mut self, val: u16) {
         self.hdr.h_proto = u16::to_be(val);
     }
@@ -118,10 +124,12 @@ where
 impl<'a, T: RawBuf> Packet<'a, T> for Ethernet<'a, T> {
     type Encapsulated = L3Proto<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self.buf
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         match self.proto() {
             p if p == ETH_P_IP as u16 => Ok(L3Proto::Ipv4(self.parse_as::<Ipv4<T>>()?)),
@@ -134,6 +142,7 @@ unsafe impl<'a, T> FromBytes<'a, T> for Ethernet<'a, T>
 where
     T: RawBuf,
 {
+    #[inline(always)]
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         // @SAFETY
         //

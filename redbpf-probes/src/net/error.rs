@@ -24,6 +24,9 @@ pub enum Error {
     NullPtr,
     /// Pointer access was unaligned
     Unaligned,
+    /// The method called is unsuported by design, see the docs of the called
+    /// method for more details
+    UnsupportedMethod,
 }
 
 pub type Result<T> = StdResult<T, Error>;

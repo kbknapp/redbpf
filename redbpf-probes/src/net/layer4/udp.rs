@@ -23,21 +23,25 @@ pub struct Udp<'a, T: RawBuf> {
 
 impl<'a, T: RawBuf> Udp<'a, T> {
     /// Returns the source port in host-byte-order
+    #[inline(always)]
     pub fn source(&self) -> u16 {
         u16::from_be(self.hdr.source)
     }
 
     /// Returns the destination port in host-byte-order
+    #[inline(always)]
     pub fn dest(&self) -> u16 {
         u16::from_be(self.hdr.dest)
     }
 
     /// Returns the length (UDP header + UDP payload) in host-byte-order
+    #[inline(always)]
     pub fn len(&self) -> u16 {
         u16::from_be(self.hdr.len)
     }
 
     /// Returns the checksum in host-byte-order
+    #[inline(always)]
     pub fn check(&self) -> u16 {
         u16::from_be(self.hdr.check)
     }
@@ -51,6 +55,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_source(&mut self, val: u16) {
         self.hdr.source = u16::to_be(val);
     }
@@ -59,6 +64,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_dest(&mut self, val: u16) {
         self.hdr.dest = u16::to_be(val);
     }
@@ -67,6 +73,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_len(&mut self, val: u16) {
         self.hdr.len = u16::to_be(val);
     }
@@ -75,6 +82,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_check(&mut self, val: u16) {
         self.hdr.check = u16::to_be(val);
     }
@@ -83,10 +91,12 @@ where
 impl<'a, T: RawBuf> Packet<'a, T> for Udp<'a, T> {
     type Encapsulated = NetBuf<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self.buf
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         Ok(self.buf)
     }
@@ -96,6 +106,7 @@ unsafe impl<'a, T> FromBytes<'a, T> for Udp<'a, T>
 where
     T: RawBuf,
 {
+    #[inline(always)]
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         // @SAFETY
         //

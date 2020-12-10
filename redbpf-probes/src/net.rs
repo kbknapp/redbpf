@@ -50,6 +50,7 @@ pub trait FromBe {
 macro_rules! impl_from_be {
     ($T:ty) => {
         impl FromBe for $T {
+            #[inline(always)]
             fn from_be(&self) -> $T {
                 <$T>::from_be(*self)
             }
@@ -140,6 +141,7 @@ where
 
     /// Interprets the first `size_of::<U>()` bytes in this buffer as some type
     /// `U`, "consuming" `size_of::<U>()` bytes from the buffer.
+    #[inline(always)]
     fn parse_as<U>(self) -> Result<U>
     where
         U: FromBytes<'a, T>,

@@ -35,6 +35,7 @@ pub enum L3Proto<'a, T: RawBuf> {
 }
 
 impl<'a, T: RawBuf> L3Proto<'a, T> {
+    #[inline(always)]
     fn inner_buf(self) -> NetBuf<'a, T> {
         match self {
             L3Proto::Ipv4(ip) => ip.data(),
@@ -46,10 +47,12 @@ impl<'a, T: RawBuf> L3Proto<'a, T> {
 impl<'a, T: RawBuf> Packet<'a, T> for L3Proto<'a, T> {
     type Encapsulated = L4Proto<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self.inner_buf()
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         match self {
             L3Proto::Ipv4(ref ip) => match ip.protocol() {

@@ -23,21 +23,25 @@ pub struct Tcp<'a, T: RawBuf> {
 
 impl<'a, T: RawBuf> Tcp<'a, T> {
     /// Returns the source port in host-byte-order
+    #[inline(always)]
     pub fn source(&self) -> u16 {
         u16::from_be(self.hdr.source)
     }
 
     /// Returns the destination port in host-byte-order
+    #[inline(always)]
     pub fn dest(&self) -> u16 {
         u16::from_be(self.hdr.dest)
     }
 
     /// Returns the sequence number in host-byte-order
+    #[inline(always)]
     pub fn seq(&self) -> u32 {
         u32::from_be(self.hdr.seq)
     }
 
     /// Returns the ACK (acknowledgement) number in host-byte-order
+    #[inline(always)]
     pub fn ack_seq(&self) -> u32 {
         u32::from_be(self.hdr.ack_seq)
     }
@@ -120,6 +124,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_source(&mut self, val: u16) {
         self.hdr.source = u16::to_be(val);
     }
@@ -128,6 +133,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_dest(&mut self, val: u16) {
         self.hdr.dest = u16::to_be(val);
     }
@@ -136,6 +142,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_seq(&mut self, val: u32) {
         self.hdr.seq = u32::to_be(val);
     }
@@ -144,6 +151,7 @@ where
     ///
     /// **NOTE:** `val` will be converted to network-byte-order as part of the
     /// write
+    #[inline(always)]
     pub fn set_ack_seq(&mut self, val: u32) {
         self.hdr.ack_seq = u32::from_be(val);
     }
@@ -219,10 +227,12 @@ where
 impl<'a, T: RawBuf> Packet<'a, T> for Tcp<'a, T> {
     type Encapsulated = NetBuf<'a, T>;
 
+    #[inline(always)]
     fn data(self) -> NetBuf<'a, T> {
         self.buf
     }
 
+    #[inline(always)]
     fn parse(self) -> Result<Self::Encapsulated> {
         Ok(self.buf)
     }
@@ -232,6 +242,7 @@ unsafe impl<'a, T> FromBytes<'a, T> for Tcp<'a, T>
 where
     T: RawBuf,
 {
+    #[inline(always)]
     fn from_bytes(mut buf: NetBuf<'a, T>) -> Result<Self> {
         // @SAFETY
         //

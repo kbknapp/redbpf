@@ -91,6 +91,7 @@ pub enum XdpAction {
 }
 
 impl XdpAction {
+    #[inline(always)]
     #[doc(hidden)]
     pub fn from_any<T: Any>(other: &T) -> Self {
         if TypeId::of::<T>() == TypeId::of::<XdpAction>() {
@@ -125,6 +126,7 @@ impl XdpContext {
     /// Returns a [`NetBuf`][0] with the header offset set to `0` since this is
     /// a clean slate data buffer with no knowledge of what type of data lives
     /// inside.
+    #[inline(always)]
     pub fn data<'a>(&'a mut self) -> NetBuf<'a, Self> {
         NetBuf {
             buf: self as *mut _,
@@ -135,6 +137,7 @@ impl XdpContext {
 }
 
 impl RawBuf for XdpContext {
+    #[inline(always)]
     fn start(&self) -> usize {
         if let Some(ctx) = unsafe { self.ctx.as_mut() } {
             return ctx.data as usize;
@@ -142,6 +145,7 @@ impl RawBuf for XdpContext {
         panic!("*xdp_md is null")
     }
 
+    #[inline(always)]
     fn end(&self) -> usize {
         if let Some(ctx) = unsafe { self.ctx.as_mut() } {
             return ctx.data_end as usize;
