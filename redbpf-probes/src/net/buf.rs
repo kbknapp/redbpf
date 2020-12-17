@@ -97,12 +97,11 @@ pub trait RawBuf {
     #[inline]
     fn slice_at(&self, offset: usize, len: usize) -> &[u8] {
         unsafe {
-            let start = self.start() + offset;
-            if self.check_bounds(start, start + len) {
-                if let Some(ptr) = self.ptr_at(0) {
-                    let s = slice::from_raw_parts(ptr, len);
-                    return s;
-                }
+            let base = self.start() + offset;
+            if self.check_bounds(base, base + len) {
+                // We can't use RawBuf::ptr_at here due to the BPF verifier which will reject
+                let s = slice::from_raw_parts(base as *const _, len);
+                return s;
             }
             &[]
         }
